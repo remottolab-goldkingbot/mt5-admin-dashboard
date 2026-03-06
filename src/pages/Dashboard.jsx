@@ -255,6 +255,19 @@ const active = licenses.filter(l=>l.status==="active").length;
 const inactive = licenses.filter(l=>l.status==="inactive").length;
 const assigned = licenses.filter(l=>l.account_number).length;
 
+const onlineUsers = licenses.filter(l=>{
+if(!l.last_seen) return false;
+
+const last = new Date(l.last_seen);
+const now = new Date();
+
+const diffMinutes = (now-last)/1000/60;
+
+return diffMinutes < 5;
+}).length;
+
+const offlineUsers = licenses.length - onlineUsers;
+
 const generateChartData = (value)=>
 Array.from({length:8},(_,i)=>({name:i,value:i<value?1:0}));
 
@@ -266,6 +279,22 @@ const currentLicenses = filteredLicenses.slice(indexOfFirst,indexOfLast);
 return(
 
 <div className="space-y-8">
+
+<div className="flex justify-end gap-8 mb-2">
+
+<div className="flex items-center gap-3 bg-gray-900 px-4 py-2 rounded-lg border border-gray-800">
+<div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+<div className="text-sm text-gray-400">Online</div>
+<div className="text-lg font-bold text-green-400">{onlineUsers}</div>
+</div>
+
+<div className="flex items-center gap-3 bg-gray-900 px-4 py-2 rounded-lg border border-gray-800">
+<div className="w-3 h-3 bg-red-500 rounded-full"></div>
+<div className="text-sm text-gray-400">Offline</div>
+<div className="text-lg font-bold text-red-400">{offlineUsers}</div>
+</div>
+
+</div>
 
 {showResetAlert && (
 <div className="fixed top-6 right-6 bg-green-600 text-white px-4 py-3 rounded-lg shadow-lg z-50">
