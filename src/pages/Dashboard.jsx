@@ -376,20 +376,16 @@ license.status==="active"
 
 <td
 className="py-4"
-title={`Balance: ${license.balance || "N/A"}
-Equity: ${license.equity || "N/A"}
-Profit: ${license.profit || "N/A"}
-Drawdown: ${license.drawdown || "N/A"}%`}
+title={`Balance: ${license.balance ?? "N/A"}
+Equity: ${license.equity ?? "N/A"}
+Profit: ${license.profit ?? "N/A"}
+Drawdown: ${license.drawdown ?? "N/A"}%`}
 >
 {license.balance ?? "-"}
 </td>
 
-<td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
-
-<td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
-
-<td className="py-4">
-{new Date(license.created_at).toLocaleDateString()}
+<td className="py-4 text-xs">
+{getExpiration(license.expires_at)}
 </td>
 
 <td className="py-4">
