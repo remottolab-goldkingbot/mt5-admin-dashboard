@@ -322,7 +322,7 @@ className="bg-gray-800 border border-gray-700 pl-10 pr-4 py-2 rounded-lg"
 <th>Cuenta</th>
 <th>Estado</th>
 <th>EA</th>
-<th>Profit</th>
+<th>Balance</th>
 <th>Expira</th>
 <th>Creada</th>
 <th>Perfil</th>
@@ -376,11 +376,15 @@ license.status==="active"
 
 <td
 className="py-4"
-title={`Equity: ${license.equity || "N/A"}
-Drawdown: ${license.drawdown || "N/A"}`}
+title={`Balance: ${license.balance || "N/A"}
+Equity: ${license.equity || "N/A"}
+Profit: ${license.profit || "N/A"}
+Drawdown: ${license.drawdown || "N/A"}%`}
 >
 {license.balance || "-"}
 </td>
+
+<td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
 
 <td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
 
@@ -390,11 +394,12 @@ Drawdown: ${license.drawdown || "N/A"}`}
 
 <td
 className="py-4"
-title={`Balance: ${license.balance}
-Equity: ${license.equity}
-Drawdown: ${license.drawdown}`}
+title={`Balance: ${license.balance || "N/A"}
+Equity: ${license.equity || "N/A"}
+Profit: ${license.profit || "N/A"}
+Drawdown: ${license.drawdown || "N/A"}%`}
 >
-{license.profit}
+{license.balance || "-"}
 </td>
 
 <td className="py-4">
