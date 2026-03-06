@@ -322,6 +322,7 @@ className="bg-gray-800 border border-gray-700 pl-10 pr-4 py-2 rounded-lg"
 <th>Cuenta</th>
 <th>Estado</th>
 <th>EA</th>
+<th>Profit</th>
 <th>Expira</th>
 <th>Creada</th>
 <th>Perfil</th>
@@ -362,6 +363,14 @@ license.status==="active"
 {getEAStatus(license.last_seen)==="ONLINE"
 ? <span className="text-green-400">🟢 Online</span>
 : <span className="text-gray-500">⚫ Offline</span>}
+<td
+className="py-4"
+title={`Balance: ${license.balance || "N/A"}
+Equity: ${license.equity || "N/A"}
+Drawdown: ${license.drawdown || "N/A"}`}
+>
+{license.profit || "-"}
+</td>
 
 <br/>
 
