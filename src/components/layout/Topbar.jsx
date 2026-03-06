@@ -34,6 +34,8 @@ const fetchStats = async () => {
 
     const data = await response.json();
 
+if (!Array.isArray(data)) return;
+
     let online = 0;
     let offline = 0;
 
