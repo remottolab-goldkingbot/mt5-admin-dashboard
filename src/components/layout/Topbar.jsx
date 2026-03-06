@@ -3,27 +3,28 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
 function Topbar() {
+
 const { user, logout } = useAuth();
 const navigate = useNavigate();
 
-const [onlineUsers,setOnlineUsers] = useState(0);
-const [offlineUsers,setOfflineUsers] = useState(0);
-const [totalBalance,setTotalBalance] = useState(0);
-const [avgDrawdown,setAvgDrawdown] = useState(0);
+const [onlineUsers, setOnlineUsers] = useState(0);
+const [offlineUsers, setOfflineUsers] = useState(0);
+const [totalBalance, setTotalBalance] = useState(0);
+const [avgDrawdown, setAvgDrawdown] = useState(0);
 
 const handleLogout = () => {
 logout();
 navigate("/login");
 };
 
-useEffect(()=>{
+useEffect(() => {
 
 ```
-const fetchStats = async ()=>{
+const fetchStats = async () => {
 
-  try{
+  try {
 
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/licenses`);
+    const res = await fetch(import.meta.env.VITE_API_URL + "/licenses");
     const data = await res.json();
 
     let online = 0;
@@ -31,32 +32,32 @@ const fetchStats = async ()=>{
     let balance = 0;
     let drawdown = 0;
 
-    data.forEach(l=>{
+    data.forEach(l => {
 
-      if(l.last_seen){
+      if (l.last_seen) {
 
         const last = new Date(l.last_seen);
         const now = new Date();
-        const diffMinutes = (now-last)/1000/60;
+        const diffMinutes = (now - last) / 1000 / 60;
 
-        if(diffMinutes < 5) online++;
+        if (diffMinutes < 5) online++;
         else offline++;
 
-      }else{
+      } else {
         offline++;
       }
 
-      if(l.balance) balance += Number(l.balance);
-      if(l.drawdown) drawdown += Number(l.drawdown);
+      if (l.balance) balance += Number(l.balance);
+      if (l.drawdown) drawdown += Number(l.drawdown);
 
     });
 
     setOnlineUsers(online);
     setOfflineUsers(offline);
     setTotalBalance(balance);
-    setAvgDrawdown(data.length ? drawdown/data.length : 0);
+    setAvgDrawdown(data.length ? drawdown / data.length : 0);
 
-  }catch(err){
+  } catch (err) {
     console.log(err);
   }
 
@@ -64,16 +65,18 @@ const fetchStats = async ()=>{
 
 fetchStats();
 
-const interval = setInterval(fetchStats,10000);
+const interval = setInterval(fetchStats, 10000);
 
-return ()=>clearInterval(interval);
+return () => clearInterval(interval);
 ```
 
-},[]);
+}, []);
 
-return ( <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6">
+return (
 
 ```
+<header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6">
+
   <h1 className="text-lg font-semibold">Dashboard</h1>
 
   <div className="flex items-center gap-8 text-sm font-semibold">
