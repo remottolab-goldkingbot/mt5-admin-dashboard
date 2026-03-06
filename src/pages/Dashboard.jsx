@@ -376,11 +376,10 @@ license.status==="active"
 
 <td
 className="py-4"
-title={`Balance: ${license.balance || "N/A"}
-Equity: ${license.equity || "N/A"}
+title={`Equity: ${license.equity || "N/A"}
 Drawdown: ${license.drawdown || "N/A"}`}
 >
-{license.profit || "-"}
+{license.balance || "-"}
 </td>
 
 <td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
