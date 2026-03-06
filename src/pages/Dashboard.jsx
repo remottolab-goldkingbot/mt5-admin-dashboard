@@ -379,6 +379,15 @@ license.status==="active"
 {new Date(license.created_at).toLocaleDateString()}
 </td>
 
+<td
+className="py-4"
+title={`Balance: ${license.balance}
+Equity: ${license.equity}
+Drawdown: ${license.drawdown}`}
+>
+{license.profit}
+</td>
+
 <td className="py-4">
 <button
 onClick={()=>{
