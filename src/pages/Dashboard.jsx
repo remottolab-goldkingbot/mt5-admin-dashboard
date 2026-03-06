@@ -381,7 +381,7 @@ Equity: ${license.equity || "N/A"}
 Profit: ${license.profit || "N/A"}
 Drawdown: ${license.drawdown || "N/A"}%`}
 >
-{license.balance || "-"}
+{license.balance ?? "-"}
 </td>
 
 <td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
@@ -392,14 +392,8 @@ Drawdown: ${license.drawdown || "N/A"}%`}
 {new Date(license.created_at).toLocaleDateString()}
 </td>
 
-<td
-className="py-4"
-title={`Balance: ${license.balance || "N/A"}
-Equity: ${license.equity || "N/A"}
-Profit: ${license.profit || "N/A"}
-Drawdown: ${license.drawdown || "N/A"}%`}
->
-{license.balance || "-"}
+<td className="py-4">
+{new Date(license.created_at).toLocaleDateString()}
 </td>
 
 <td className="py-4">
