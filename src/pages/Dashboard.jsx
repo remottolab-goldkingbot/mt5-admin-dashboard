@@ -363,14 +363,6 @@ license.status==="active"
 {getEAStatus(license.last_seen)==="ONLINE"
 ? <span className="text-green-400">🟢 Online</span>
 : <span className="text-gray-500">⚫ Offline</span>}
-<td
-className="py-4"
-title={`Balance: ${license.balance || "N/A"}
-Equity: ${license.equity || "N/A"}
-Drawdown: ${license.drawdown || "N/A"}`}
->
-{license.profit || "-"}
-</td>
 
 <br/>
 
@@ -380,6 +372,15 @@ Drawdown: ${license.drawdown || "N/A"}`}
 : "Sin conexión"}
 </span>
 
+</td>
+
+<td
+className="py-4"
+title={`Balance: ${license.balance || "N/A"}
+Equity: ${license.equity || "N/A"}
+Drawdown: ${license.drawdown || "N/A"}`}
+>
+{license.profit || "-"}
 </td>
 
 <td className="py-4 text-xs">{getExpiration(license.expires_at)}</td>
