@@ -255,6 +255,45 @@ const active = licenses.filter(l=>l.status==="active").length;
 const inactive = licenses.filter(l=>l.status==="inactive").length;
 const assigned = licenses.filter(l=>l.account_number).length;
 
+let online = 0;
+let offline = 0;
+let balanceTotal = 0;
+let profitTotal = 0;
+let drawdownTotal = 0;
+let active24h = 0;
+let lastConnection = null;
+
+licenses.forEach(l => {
+
+if(l.last_seen){
+
+const last = new Date(l.last_seen);
+const now = new Date();
+
+const diffMinutes = (now-last)/1000/60;
+const diffHours = (now-last)/1000/60/60;
+
+if(diffMinutes < 5) online++;
+else offline++;
+
+if(diffHours < 24) active24h++;
+
+if(!lastConnection || last > lastConnection)
+lastConnection = last;
+
+}else{
+offline++;
+}
+
+balanceTotal += Number(l.balance || 0);
+profitTotal += Number(l.profit || 0);
+drawdownTotal += Number(l.drawdown || 0);
+
+});
+
+const ddAverage = licenses.length ? drawdownTotal / licenses.length : 0;
+const balanceAverage = licenses.length ? balanceTotal / licenses.length : 0;
+
 const generateChartData = (value)=>
 Array.from({length:8},(_,i)=>({name:i,value:i<value?1:0}));
 
@@ -281,6 +320,27 @@ Cuenta reseteada correctamente
 <MetricCard title="Activas" value={active} color="text-green-500" chartData={generateChartData(active)} chartColor="#22c55e"/>
 <MetricCard title="Inactivas" value={inactive} color="text-red-500" chartData={generateChartData(inactive)} chartColor="#ef4444"/>
 <MetricCard title="Asignadas" value={assigned} color="text-blue-400" chartData={generateChartData(assigned)} chartColor="#60a5fa"/>
+
+</div>
+
+{/* EA LIVE METRICS */}
+
+<div className="grid md:grid-cols-8 gap-3 mt-6">
+
+<SmallMetric title="EA Online" value={online} color="text-green-400" />
+<SmallMetric title="EA Offline" value={offline} color="text-red-400" />
+
+<SmallMetric title="Balance Total" value={`$${balanceTotal.toFixed(2)}`} color="text-yellow-400" />
+
+<SmallMetric title="DD Promedio" value={`${ddAverage.toFixed(2)}%`} color="text-purple-400" />
+
+<SmallMetric title="Activos 24h" value={active24h} color="text-blue-400" />
+
+<SmallMetric title="Última conexión" value={lastConnection ? new Date(lastConnection).toLocaleTimeString() : "-"} color="text-gray-300" />
+
+<SmallMetric title="Profit Total" value={`$${profitTotal.toFixed(2)}`} color="text-green-300" />
+
+<SmallMetric title="Balance Promedio" value={`$${balanceAverage.toFixed(2)}`} color="text-orange-300" />
 
 </div>
 
@@ -652,6 +712,24 @@ return(
 </ResponsiveContainer>
 
 </div>
+
+</div>
+
+);
+
+}
+
+function SmallMetric({title,value,color}){
+
+return(
+
+<div className="bg-gray-900 p-3 rounded-lg border border-gray-800 text-center">
+
+<p className="text-gray-400 text-xs">{title}</p>
+
+<h4 className={`text-sm font-bold ${color}`}>
+{value}
+</h4>
 
 </div>
 
