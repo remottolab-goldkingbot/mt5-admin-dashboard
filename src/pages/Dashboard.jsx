@@ -54,7 +54,21 @@ headers: { Authorization: `Bearer ${token}` },
 
 const data = await res.json();
 
-if (!res.ok) throw new Error(data.message);
+if (res.status === 401 || res.status === 403) {
+
+localStorage.removeItem("token");
+
+window.location.href = "/login";
+
+return;
+
+}
+
+if (!res.ok) {
+
+throw new Error(data.message || "Error fetching licenses");
+
+}
 
 setLicenses(data);
 setFilteredLicenses(data);
@@ -701,7 +715,7 @@ return(
 
 <div className="w-20 h-12">
 
-<ResponsiveContainer width="100%" height="100%">
+<ResponsiveContainer width="100%" height={50}>
 
 <LineChart data={chartData}>
 
