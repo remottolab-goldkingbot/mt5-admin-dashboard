@@ -3,7 +3,7 @@ import { NavLink, useLocation } from "react-router-dom";
 function Sidebar() {
   const location = useLocation();
 
-  const isLicensesOpen =
+  const isLicensesSectionActive =
     location.pathname.startsWith("/licenses") ||
     location.pathname.startsWith("/license-plans");
 
@@ -14,7 +14,6 @@ function Sidebar() {
       </h2>
 
       <nav className="space-y-3">
-        {/* Dashboard */}
         <NavLink
           to="/"
           className={({ isActive }) =>
@@ -28,17 +27,22 @@ function Sidebar() {
           Dashboard
         </NavLink>
 
-        {/* LICENCIAS */}
         <div>
-          <p className="text-gray-400 text-sm px-2 mt-4 mb-2">
+          <div
+            className={`block px-4 py-2 rounded-lg transition ${
+              isLicensesSectionActive
+                ? "text-white"
+                : "text-gray-300"
+            }`}
+          >
             Licencias
-          </p>
+          </div>
 
-          <div className="space-y-2">
+          <div className="mt-2 ml-4 space-y-2 border-l border-gray-700 pl-4">
             <NavLink
               to="/licenses"
               className={({ isActive }) =>
-                `block px-4 py-2 rounded-lg transition ${
+                `block px-3 py-2 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white"
                     : "hover:bg-gray-800 text-gray-300"
@@ -51,7 +55,7 @@ function Sidebar() {
             <NavLink
               to="/license-plans"
               className={({ isActive }) =>
-                `block px-4 py-2 rounded-lg transition ${
+                `block px-3 py-2 rounded-lg transition ${
                   isActive
                     ? "bg-blue-600 text-white"
                     : "hover:bg-gray-800 text-gray-300"
