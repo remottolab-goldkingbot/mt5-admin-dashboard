@@ -9,10 +9,24 @@ export default function Licenses() {
     const fetchLicenses = async () => {
       try {
         const res = await fetch("https://mt5-license-system-production.up.railway.app/licenses/public/licenses");
+
         const data = await res.json();
-        setLicenses(data);
+
+        console.log("🔥 DATA BACKEND:", data);
+
+        // 🔥 CLAVE: soporta ambos formatos
+        if (Array.isArray(data)) {
+          setLicenses(data);
+        } else if (Array.isArray(data.licenses)) {
+          setLicenses(data.licenses);
+        } else {
+          console.error("Formato inesperado:", data);
+          setLicenses([]);
+        }
+
       } catch (error) {
-        console.error("Error loading licenses:", error);
+        console.error("❌ Error loading licenses:", error);
+        alert("Error conectando con backend");
       } finally {
         setLoading(false);
       }
@@ -44,6 +58,9 @@ export default function Licenses() {
   return (
     <div className="p-6 text-white">
       <h1 className="text-2xl font-bold mb-6">Licencias</h1>
+
+      {/* DEBUG TEMPORAL */}
+      {/* <pre>{JSON.stringify(licenses, null, 2)}</pre> */}
 
       <div className="bg-gray-900 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
