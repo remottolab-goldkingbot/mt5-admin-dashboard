@@ -4,17 +4,27 @@ import { Copy, RotateCcw, Trash2, Ban } from "lucide-react";
 export default function Licenses() {
   const [licenses, setLicenses] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchLicenses = async () => {
       try {
-        const res = await fetch("https://mt5-license-system-production.up.railway.app/licenses/public/licenses");
+        const url = "https://mt5-license-system-production.up.railway.app/licenses/public/licenses";
+
+        console.log("🌍 Fetching:", url);
+
+        const res = await fetch(url);
+
+        // 🔥 DETECTA 404 / ERRORES
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status} - Endpoint no existe`);
+        }
 
         const data = await res.json();
 
         console.log("🔥 DATA BACKEND:", data);
 
-        // 🔥 CLAVE: soporta ambos formatos
+        // 🔥 SOPORTA DIFERENTES FORMATOS
         if (Array.isArray(data)) {
           setLicenses(data);
         } else if (Array.isArray(data.licenses)) {
@@ -24,9 +34,9 @@ export default function Licenses() {
           setLicenses([]);
         }
 
-      } catch (error) {
-        console.error("❌ Error loading licenses:", error);
-        alert("Error conectando con backend");
+      } catch (err) {
+        console.error("❌ ERROR:", err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -51,16 +61,23 @@ export default function Licenses() {
     alert("Licencia copiada");
   };
 
+  // ⏳ LOADING
   if (loading) {
     return <div className="p-6 text-white">Cargando licencias...</div>;
+  }
+
+  // ❌ ERROR VISIBLE
+  if (error) {
+    return (
+      <div className="p-6 text-red-400">
+        ❌ Error: {error}
+      </div>
+    );
   }
 
   return (
     <div className="p-6 text-white">
       <h1 className="text-2xl font-bold mb-6">Licencias</h1>
-
-      {/* DEBUG TEMPORAL */}
-      {/* <pre>{JSON.stringify(licenses, null, 2)}</pre> */}
 
       <div className="bg-gray-900 rounded-xl overflow-hidden">
         <table className="w-full text-sm">
