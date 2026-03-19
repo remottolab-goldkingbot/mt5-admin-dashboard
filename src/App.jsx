@@ -9,22 +9,22 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   return (
     <Routes>
-      {/* LOGIN */}
       <Route path="/login" element={<Login />} />
 
-      {/* PROTECTED ROUTES */}
       <Route
-        path="/"
+        path="/*"
         element={
           <ProtectedRoute>
-            <Layout />
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/licenses" element={<Licenses />} />
+                <Route path="/license-plans" element={<LicensePlans />} />
+              </Routes>
+            </Layout>
           </ProtectedRoute>
         }
-      >
-        <Route index element={<Dashboard />} />
-        <Route path="licenses" element={<Licenses />} />
-        <Route path="license-plans" element={<LicensePlans />} />
-      </Route>
+      />
     </Routes>
   );
 }
