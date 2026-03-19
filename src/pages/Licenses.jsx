@@ -8,7 +8,7 @@ export default function Licenses() {
   useEffect(() => {
     const fetchLicenses = async () => {
       try {
-        const res = await fetch("https://mt5-license-system-production.up.railway.app/api/licenses");
+        const res = await fetch("https://mt5-license-system-production.up.railway.app/licenses/public/licenses");
         const data = await res.json();
         setLicenses(data);
       } catch (error) {
