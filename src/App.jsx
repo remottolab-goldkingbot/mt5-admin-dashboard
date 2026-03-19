@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Layout from "./components/layout/Layout";
 import Dashboard from "./pages/Dashboard";
+import Licenses from "./pages/Licenses";
 import LicensePlans from "./pages/LicensePlans";
 import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -11,20 +12,19 @@ function App() {
       {/* LOGIN */}
       <Route path="/login" element={<Login />} />
 
-      {/* PROTEGIDO */}
+      {/* PROTECTED ROUTES */}
       <Route
-        path="/*"
+        path="/"
         element={
           <ProtectedRoute>
-            <Layout>
-              <Routes>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/license-plans" element={<LicensePlans />} />
-              </Routes>
-            </Layout>
+            <Layout />
           </ProtectedRoute>
         }
-      />
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="licenses" element={<Licenses />} />
+        <Route path="license-plans" element={<LicensePlans />} />
+      </Route>
     </Routes>
   );
 }
