@@ -38,6 +38,7 @@ export function AuthProvider({ children }) {
     localStorage.setItem("user", JSON.stringify(data.user));
 
     setUser(data.user);
+    return data.user;
   };
 
   const logout = () => {

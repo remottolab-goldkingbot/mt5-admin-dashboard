@@ -1,106 +1,67 @@
-import { NavLink, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard,
+  Cpu,
+  Video,
   KeyRound,
-  ChevronDown
+  Users,
 } from "lucide-react";
 
+const NAV_ITEMS = [
+  { to: "/panel", label: "Visión General SaaS", icon: LayoutDashboard, color: "text-amber-400" },
+  { to: "/panel/software", label: "EAs e Indicadores", icon: Cpu, color: "text-cyan-400" },
+  { to: "/panel/academia", label: "Academia & Cursos", icon: Video, color: "text-rose-400" },
+  { to: "/panel/licencias/generar", label: "Licencias & MT4/MT5", icon: KeyRound, color: "text-emerald-400" },
+  { to: "/panel/estudiantes", label: "Gestión de Alumnos", icon: Users, color: "text-blue-400" },
+];
+
 function Sidebar() {
-  const location = useLocation();
-
-  const isLicensesRoute =
-    location.pathname.startsWith("/licenses") ||
-    location.pathname.startsWith("/license-plans");
-
-  // 🔥 Se abre si estás dentro, pero luego puedes controlarlo
-  const [open, setOpen] = useState(isLicensesRoute);
-
   return (
-    <aside className="w-64 bg-gray-900 border-r border-gray-800 p-5 text-white">
-      <h2 className="text-2xl font-bold mb-10 text-blue-500">
-        AdminPanel
-      </h2>
+    <aside className="w-full lg:w-64 flex-shrink-0 space-y-2 font-sans self-start lg:sticky lg:top-6">
+      <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
+        <p className="text-[10px] font-mono text-slate-500 tracking-wider uppercase px-3 py-1 font-bold">
+          Navegación Control
+        </p>
 
-      <nav className="space-y-3">
-
-        {/* DASHBOARD */}
-        <NavLink
-          to="/"
-          className={({ isActive }) =>
-            `flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
-              isActive
-                ? "bg-blue-600 text-white"
-                : "hover:bg-gray-800 text-gray-300"
-            }`
-          }
-        >
-          <LayoutDashboard size={18} />
-          Dashboard
-        </NavLink>
-
-        {/* LICENCIAS */}
-        <div>
-          <button
-            onClick={() => setOpen(!open)}
-            className={`w-full flex items-center justify-between px-4 py-2 rounded-lg transition-all duration-200 ${
-              isLicensesRoute
-                ? "bg-blue-600 text-white"
-                : "hover:bg-gray-800 text-gray-300"
-            }`}
+        {NAV_ITEMS.map(({ to, label, icon: Icon, color }) => (
+          <NavLink
+            key={to}
+            to={to}
+            end
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-mono font-semibold transition-all border ${
+                isActive
+                  ? "bg-amber-500/15 text-amber-400 border-amber-500/40"
+                  : "border-transparent text-slate-400 hover:text-white hover:bg-slate-800/50"
+              }`
+            }
           >
-            <div className="flex items-center gap-3">
-              <KeyRound size={18} />
-              Licencias
-            </div>
+            <Icon className={`w-4 h-4 ${color}`} />
+            <span>{label}</span>
+          </NavLink>
+        ))}
+      </div>
 
-            <ChevronDown
-              size={16}
-              className={`transition-transform duration-300 ${
-                open ? "rotate-180" : ""
-              }`}
-            />
-          </button>
-
-          {/* SUBMENÚ */}
-          <div
-            className={`overflow-hidden transition-all duration-300 ${
-              open ? "max-h-40 mt-2" : "max-h-0"
-            }`}
-          >
-            <div className="ml-6 space-y-2 border-l border-gray-700 pl-4">
-
-              <NavLink
-                to="/licenses"
-                className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-gray-800 text-gray-400"
-                  }`
-                }
-              >
-                Todas
-              </NavLink>
-
-              <NavLink
-                to="/license-plans"
-                className={({ isActive }) =>
-                  `block px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                    isActive
-                      ? "bg-blue-600 text-white"
-                      : "hover:bg-gray-800 text-gray-400"
-                  }`
-                }
-              >
-                Planes
-              </NavLink>
-
-            </div>
+      {/* Quick Server Stats Widget */}
+      <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-3 font-mono text-xs">
+        <span className="text-[10px] text-slate-500 uppercase tracking-wider block font-bold">
+          Estado Servidores
+        </span>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-400">API MQL5 License:</span>
+            <span className="text-emerald-400 font-bold">OK (12ms)</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-400">CDN Videos Vimeo:</span>
+            <span className="text-emerald-400 font-bold">Activo</span>
+          </div>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-slate-400">Webhook TradingView:</span>
+            <span className="text-cyan-400 font-bold">Escuchando</span>
           </div>
         </div>
-
-      </nav>
+      </div>
     </aside>
   );
 }

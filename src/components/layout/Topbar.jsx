@@ -1,5 +1,6 @@
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { ShieldCheck, LogOut } from "lucide-react";
 
 function Topbar() {
   const { user, logout } = useAuth();
@@ -11,19 +12,43 @@ function Topbar() {
   };
 
   return (
-    <header className="h-16 bg-gray-900 border-b border-gray-800 flex items-center justify-between px-6">
-      <h1 className="text-lg font-semibold">Dashboard</h1>
+    <header className="sticky top-0 z-50 bg-[#0b0f17]/90 border-b border-white/10 px-6 py-3.5 backdrop-blur-md flex items-center justify-between shadow-2xl font-sans">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center font-bold text-white font-mono text-lg shadow-lg gold-glow">
+          MS
+        </div>
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-extrabold tracking-tight text-white block leading-none">
+              Mr.Steval Admin SaaS
+            </span>
+            <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 text-[9px] font-mono font-bold uppercase">
+              Master Control
+            </span>
+          </div>
+          <span className="text-[10px] font-mono tracking-wider text-slate-400 uppercase">
+            Ecosistema Global de Trading
+          </span>
+        </div>
+      </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-400">
-          {user?.email || "Admin"}
-        </span>
+      <div className="flex items-center gap-3 text-xs font-mono">
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+          <span>Servicios SaaS: 100% Online</span>
+        </div>
+
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300">
+          <ShieldCheck className="w-4 h-4 text-amber-400" />
+          <span>{user?.email || "SuperAdmin"}</span>
+        </div>
 
         <button
           onClick={handleLogout}
-          className="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg text-sm"
+          className="flex items-center gap-1.5 bg-slate-900 hover:bg-rose-500/20 border border-slate-800 hover:border-rose-500/30 px-3 py-1.5 rounded-xl text-slate-300 hover:text-rose-400 font-bold"
         >
-          Logout
+          <LogOut className="w-3.5 h-3.5" />
+          Salir
         </button>
       </div>
     </header>
