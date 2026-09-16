@@ -1,8 +1,8 @@
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, LogOut } from "lucide-react";
+import { ShieldCheck, LogOut, Menu } from "lucide-react";
 
-function Topbar() {
+function Topbar({ onMenuClick }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -14,6 +14,13 @@ function Topbar() {
   return (
     <header className="sticky top-0 z-50 bg-[#0b0f17]/90 border-b border-white/10 px-3 sm:px-6 py-3 sm:py-3.5 backdrop-blur-md flex items-center justify-between gap-2 shadow-2xl font-sans">
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+        <button
+          onClick={onMenuClick}
+          className="lg:hidden text-slate-300 hover:text-white shrink-0"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
+
         <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 flex items-center justify-center font-bold text-white font-mono text-base sm:text-lg shadow-lg gold-glow">
           MS
         </div>
