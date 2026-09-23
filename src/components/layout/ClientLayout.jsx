@@ -29,12 +29,21 @@ const NAV_ITEMS = [
 const BADGE_COLORS = {
   amber: "bg-amber-500/20 text-amber-300",
   cyan: "bg-cyan-500/20 text-cyan-300",
+  slate: "bg-slate-700/60 text-slate-300",
 };
 
 function ClientLayout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const isPro = user?.membership === "pro";
+
+  const navItems = NAV_ITEMS.map((item) =>
+    item.to === "/portal/journal"
+      ? { ...item, badge: isPro ? "PRO" : "FREE", badgeColor: isPro ? "cyan" : "slate" }
+      : item
+  );
 
   const handleLogout = () => {
     logout();
@@ -105,7 +114,7 @@ function ClientLayout({ children }) {
           </div>
 
           <nav className="p-4 space-y-1.5 text-xs font-medium">
-            {NAV_ITEMS.map(({ to, label, icon: Icon, end, badge, badgeColor, iconColor }) => (
+            {navItems.map(({ to, label, icon: Icon, end, badge, badgeColor, iconColor }) => (
               <NavLink
                 key={to}
                 to={to}

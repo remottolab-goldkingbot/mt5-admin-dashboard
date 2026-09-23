@@ -19,6 +19,8 @@ import {
   Image,
   List,
   Download,
+  Sparkles,
+  Lock,
 } from "lucide-react";
 
 const ASSETS = ["XAUUSD (Oro)", "EURUSD", "SOLUSDT", "BTCUSDT", "US30 (Dow Jones)"];
@@ -34,7 +36,7 @@ const INITIAL_TRADES = [
   { date: "09 Sep - 16:20", asset: "XAUUSD", session: "Asia", type: "SHORT", lots: "1.00", entry: "2505.00 ➔ 2512.50", setup: "Gold Cascade", errorTag: "Mover SL ❌", clean: false, pnl: -250 },
 ];
 
-// Genera una cuadrícula simple del mes actual con resultados demo día por día
+// Genera una cuadrícula simple del mes actual (semana Domingo→Sábado) con resultados demo día por día
 function useMonthGrid() {
   return useMemo(() => {
     const now = new Date();
@@ -42,14 +44,14 @@ function useMonthGrid() {
     const month = now.getMonth();
     const firstDay = new Date(year, month, 1);
     const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // Lunes=0 ... Domingo=6
-    const startOffset = (firstDay.getDay() + 6) % 7;
+    // Domingo=0 ... Sábado=6 (coincide directo con Date.getDay())
+    const startOffset = firstDay.getDay();
 
     const cells = [];
     for (let i = 0; i < startOffset; i++) cells.push(null);
     for (let d = 1; d <= daysInMonth; d++) {
       const dow = (startOffset + d - 1) % 7;
-      const isWeekend = dow >= 5;
+      const isWeekend = dow === 0 || dow === 6;
       let pnl = null;
       let trades = 0;
       if (!isWeekend) {
@@ -68,6 +70,7 @@ function JournalPro() {
   const monthLabel = new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 
   const [trades, setTrades] = useState(INITIAL_TRADES);
+  const [mode, setMode] = useState("manual");
   const [search, setSearch] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
 
@@ -246,13 +249,13 @@ function JournalPro() {
         </div>
 
         <div className="grid grid-cols-7 gap-2 sm:gap-3 text-center font-mono text-xs text-slate-400 font-bold">
+          <div className="text-slate-600">DOM</div>
           <div>LUN</div>
           <div>MAR</div>
           <div>MIÉ</div>
           <div>JUE</div>
           <div>VIE</div>
           <div className="text-slate-600">SÁB</div>
-          <div className="text-slate-600">DOM</div>
         </div>
 
         <div className="grid grid-cols-7 gap-2 sm:gap-3 font-mono text-xs">
@@ -304,6 +307,30 @@ function JournalPro() {
             <span className="text-xs font-mono text-amber-400 flex items-center gap-1">
               <Zap className="w-3.5 h-3.5" /> MQL5 Sync Ready
             </span>
+          </div>
+
+          {/* Selector Manual / Automático */}
+          <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-900 border border-slate-800 text-xs font-mono w-fit">
+            <button
+              type="button"
+              onClick={() => setMode("manual")}
+              className={`px-3.5 py-1.5 rounded-lg font-bold transition-all flex items-center gap-1.5 ${
+                mode === "manual" ? "bg-rose-500 text-white" : "text-slate-400 hover:text-white"
+              }`}
+            >
+              <Edit3 className="w-3.5 h-3.5" />
+              <span>Registro Manual</span>
+            </button>
+            <button
+              type="button"
+              disabled
+              title="Próximamente: conecta tu cuenta MT4/MT5 y se registra solo"
+              className="px-3.5 py-1.5 rounded-lg font-bold text-slate-600 flex items-center gap-1.5 cursor-not-allowed"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Automático (Próximamente)</span>
+              <Lock className="w-3 h-3" />
+            </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 font-mono text-xs">
