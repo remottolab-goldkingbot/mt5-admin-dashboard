@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Search, KeyRound, ShieldCheck, Trash2, AlertTriangle } from "lucide-react";
+import { useAuth } from "../context/AuthContext";
+import { Users, Search, KeyRound, ShieldCheck, ShieldOff, Trash2, AlertTriangle } from "lucide-react";
 
 const PAGE_SIZE = 10;
 
 function Students() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -15,6 +17,10 @@ function Students() {
   const [userToDelete, setUserToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+
+  const [userToDemote, setUserToDemote] = useState(null);
+  const [demoting, setDemoting] = useState(false);
+  const [demoteError, setDemoteError] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -80,6 +86,32 @@ function Students() {
       setDeleteError(err.message);
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const confirmDemote = async () => {
+    if (!userToDemote) return;
+    setDemoting(true);
+    setDemoteError("");
+
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/users/${userToDemote.id}/role`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: "user" }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo quitar el rol de administrador");
+
+      setUserToDemote(null);
+      fetchUsers();
+    } catch (err) {
+      setDemoteError(err.message);
+    } finally {
+      setDemoting(false);
     }
   };
 
@@ -161,9 +193,23 @@ function Students() {
                       <td className="py-3 text-slate-300">{u.email}</td>
                       <td className="py-3">
                         {u.role === "admin" ? (
-                          <span className="px-2 py-0.5 rounded border text-[10px] bg-rose-500/20 text-rose-400 border-rose-500/30 flex items-center gap-1 w-fit">
-                            <ShieldCheck className="w-3 h-3" /> Admin
-                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded border text-[10px] bg-rose-500/20 text-rose-400 border-rose-500/30 flex items-center gap-1 w-fit">
+                              <ShieldCheck className="w-3 h-3" /> Admin
+                            </span>
+                            {Number(u.id) !== Number(currentUser?.id) && (
+                              <button
+                                onClick={() => {
+                                  setUserToDemote(u);
+                                  setDemoteError("");
+                                }}
+                                title="Quitar rol de administrador"
+                                className="p-1 rounded bg-slate-800 hover:bg-amber-500/30 text-amber-400"
+                              >
+                                <ShieldOff className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         ) : (
                           <span className="px-2 py-0.5 rounded border text-[10px] bg-slate-800 text-slate-300 border-slate-700">
                             Alumno
@@ -302,6 +348,37 @@ function Students() {
               </button>
               <button
                 onClick={() => setUserToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {userToDemote && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-amber-500/30 text-center space-y-4">
+            <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
+            <h2 className="text-white font-bold text-lg">¿Quitar permisos de administrador?</h2>
+            <p className="text-slate-400 text-xs font-mono">
+              <span className="text-white">{userToDemote.name || userToDemote.email}</span> va a
+              perder el acceso al Panel Admin y va a pasar a ser un alumno normal. Úsalo solo con
+              cuentas de prueba que no debieron quedar como admin.
+            </p>
+
+            {demoteError && <p className="text-rose-400 text-xs font-mono">{demoteError}</p>}
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={confirmDemote}
+                disabled={demoting}
+                className="flex-1 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-black font-bold text-xs disabled:opacity-50"
+              >
+                {demoting ? "Actualizando..." : "Sí, quitar admin"}
+              </button>
+              <button
+                onClick={() => setUserToDemote(null)}
                 className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
               >
                 Cancelar
