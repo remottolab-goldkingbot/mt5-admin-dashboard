@@ -15,8 +15,6 @@ import {
   List,
 } from "lucide-react";
 
-const FREE_VISIBLE_LIMIT = 2;
-
 function JournalFree() {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -54,7 +52,7 @@ function JournalFree() {
     return { total, wins, losses: total - wins, pnl, winRate };
   }, [trades]);
 
-  const visibleTrades = trades.slice(0, FREE_VISIBLE_LIMIT);
+  const visibleTrades = trades;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -346,7 +344,7 @@ function JournalFree() {
               <span>Historial Reciente de Operaciones</span>
             </h2>
             <p className="text-[11px] text-slate-400 font-mono">
-              Plan Free: Muestra tus últimos {FREE_VISIBLE_LIMIT} registros
+              Tu historial completo de operaciones registradas
             </p>
           </div>
 
@@ -355,7 +353,7 @@ function JournalFree() {
             className="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-xs font-bold flex items-center gap-1.5 hover:bg-amber-500/20"
           >
             <Lock className="w-3.5 h-3.5" />
-            <span>Desbloquear Historial Completo & Exportación</span>
+            <span>Desbloquear Calendario, Analítica & Exportación PDF</span>
           </Link>
         </div>
 
@@ -418,8 +416,9 @@ function JournalFree() {
 
         <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-center space-y-2 font-mono">
           <span className="text-xs text-slate-400">
-            🔒 Registros limitados. La versión PRO sincroniza automáticamente con MetaTrader 4 / 5
-            y guarda historial ilimitado en la nube.
+            📊 Tu historial completo ya está guardado. La versión PRO agrega Calendario Visual,
+            analítica avanzada (Profit Factor, Drawdown, Disciplina) y sincronización automática
+            con MetaTrader 4 / 5.
           </span>
           <div>
             <Link to="/#section-pricing" className="text-xs text-amber-400 font-bold underline hover:text-amber-300">
