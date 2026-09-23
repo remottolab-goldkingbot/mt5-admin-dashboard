@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ShieldCheck,
   FileUp,
@@ -29,47 +29,13 @@ const SETUPS = ["Gold Cascade Recovery", "Smart Money Sweep", "Solana Grid Maste
 const EMOTIONS = ["Calmado y Enfocado", "Ansioso / Ligera Duda", "FOMO / Entrada Tardía", "Venganza / Post Pérdida"];
 const ERROR_TAGS = ["Sin Errores (Ejecución Limpia)", "Mover SL en contra", "Cierre Prematuro por Miedo", "Sobre-lotaje no autorizado"];
 
-const INITIAL_TRADES = [
-  { date: "15 Sep - 09:30", asset: "XAUUSD", session: "Nueva York", type: "LONG", lots: "1.50", entry: "2510.50 ➔ 2525.80", setup: "Gold Cascade", errorTag: "Limpio ✅", clean: true, pnl: 290 },
-  { date: "14 Sep - 14:15", asset: "SOLUSDT", session: "Nueva York", type: "LONG", lots: "10.00", entry: "132.40 ➔ 138.10", setup: "Solana Grid EA", errorTag: "Limpio ✅", clean: true, pnl: 380 },
-  { date: "11 Sep - 10:05", asset: "EURUSD", session: "Londres", type: "SHORT", lots: "2.00", entry: "1.1040 ➔ 1.0980", setup: "Smart Money Sweep", errorTag: "Limpio ✅", clean: true, pnl: 1150 },
-  { date: "09 Sep - 16:20", asset: "XAUUSD", session: "Asia", type: "SHORT", lots: "1.00", entry: "2505.00 ➔ 2512.50", setup: "Gold Cascade", errorTag: "Mover SL ❌", clean: false, pnl: -250 },
-];
-
-// Genera una cuadrícula simple del mes actual (semana Domingo→Sábado) con resultados demo día por día
-function useMonthGrid() {
-  return useMemo(() => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = now.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    // Domingo=0 ... Sábado=6 (coincide directo con Date.getDay())
-    const startOffset = firstDay.getDay();
-
-    const cells = [];
-    for (let i = 0; i < startOffset; i++) cells.push(null);
-    for (let d = 1; d <= daysInMonth; d++) {
-      const dow = (startOffset + d - 1) % 7;
-      const isWeekend = dow === 0 || dow === 6;
-      let pnl = null;
-      let trades = 0;
-      if (!isWeekend) {
-        const seed = (d * 17) % 10;
-        trades = 1 + (seed % 4);
-        pnl = seed < 3 ? -(50 + seed * 40) : 150 + seed * 60;
-      }
-      cells.push({ day: d, isWeekend, pnl, trades });
-    }
-    return cells;
-  }, []);
-}
+const MONTH_LABEL = new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 
 function JournalPro() {
-  const calendarCells = useMonthGrid();
-  const monthLabel = new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" });
-
-  const [trades, setTrades] = useState(INITIAL_TRADES);
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
   const [mode, setMode] = useState("manual");
   const [search, setSearch] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
@@ -93,35 +59,198 @@ function JournalPro() {
   const [calc, setCalc] = useState({ balance: 10000, risk: 1.0, pips: 25 });
   const lotResult = ((calc.balance * (calc.risk / 100)) / (calc.pips * 10)).toFixed(2);
 
-  const handleSubmit = (e) => {
+  const token = localStorage.getItem("token");
+
+  const fetchTrades = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo cargar tu journal");
+      setTrades(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrades();
+  }, []);
+
+  // ==========================
+  // Estadísticas reales derivadas de tus trades (empieza todo en 0 / "—" sin datos)
+  // ==========================
+  const stats = useMemo(() => {
+    const total = trades.length;
+    if (total === 0) {
+      return {
+        pnlNeto: 0,
+        winRate: "0.0",
+        wins: 0,
+        losses: 0,
+        profitFactor: "—",
+        avgRR: "—",
+        maxDrawdown: 0,
+        disciplina: "—",
+        costoErrores: 0,
+        errorCount: 0,
+        mejorSesion: "—",
+        mejorSesionPnl: 0,
+      };
+    }
+
+    const wins = trades.filter((t) => Number(t.pnl) >= 0);
+    const losses = trades.filter((t) => Number(t.pnl) < 0);
+    const pnlNeto = trades.reduce((acc, t) => acc + Number(t.pnl), 0);
+    const winRate = ((wins.length / total) * 100).toFixed(1);
+
+    const sumWins = wins.reduce((acc, t) => acc + Number(t.pnl), 0);
+    const sumLosses = Math.abs(losses.reduce((acc, t) => acc + Number(t.pnl), 0));
+    const profitFactor = sumLosses > 0 ? (sumWins / sumLosses).toFixed(2) : sumWins > 0 ? "∞" : "—";
+
+    const avgWin = wins.length > 0 ? sumWins / wins.length : 0;
+    const avgLoss = losses.length > 0 ? sumLosses / losses.length : 0;
+    const avgRR = avgLoss > 0 ? `1 : ${(avgWin / avgLoss).toFixed(1)}` : "—";
+
+    // Drawdown simple: punto mas bajo de la curva acumulada (ordenada del mas viejo al mas nuevo)
+    const chrono = [...trades].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    let running = 0;
+    let peak = 0;
+    let maxDD = 0;
+    chrono.forEach((t) => {
+      running += Number(t.pnl);
+      if (running > peak) peak = running;
+      const dd = running - peak;
+      if (dd < maxDD) maxDD = dd;
+    });
+
+    const cleanCount = trades.filter(
+      (t) => !t.error_tag || t.error_tag.includes("Limpio") || t.error_tag.includes("Sin Errores")
+    ).length;
+    const disciplina = ((cleanCount / total) * 100).toFixed(1);
+
+    const errorTrades = trades.filter(
+      (t) => t.error_tag && !t.error_tag.includes("Limpio") && !t.error_tag.includes("Sin Errores")
+    );
+    const costoErrores = errorTrades.reduce((acc, t) => acc + Number(t.pnl), 0);
+
+    const sessionTotals = {};
+    trades.forEach((t) => {
+      if (!t.session) return;
+      sessionTotals[t.session] = (sessionTotals[t.session] || 0) + Number(t.pnl);
+    });
+    let mejorSesion = "—";
+    let mejorSesionPnl = 0;
+    Object.entries(sessionTotals).forEach(([s, v]) => {
+      if (v > mejorSesionPnl || mejorSesion === "—") {
+        mejorSesion = s;
+        mejorSesionPnl = v;
+      }
+    });
+
+    return {
+      pnlNeto,
+      winRate,
+      wins: wins.length,
+      losses: losses.length,
+      profitFactor,
+      avgRR,
+      maxDrawdown: maxDD,
+      disciplina,
+      costoErrores,
+      errorCount: errorTrades.length,
+      mejorSesion,
+      mejorSesionPnl,
+    };
+  }, [trades]);
+
+  // ==========================
+  // Calendario real: agrupa tus trades por dia del mes actual (Domingo -> Sabado)
+  // ==========================
+  const calendarCells = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const startOffset = firstDay.getDay(); // Domingo=0
+
+    const byDay = {};
+    trades.forEach((t) => {
+      const d = new Date(t.created_at);
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        const day = d.getDate();
+        if (!byDay[day]) byDay[day] = { pnl: 0, count: 0 };
+        byDay[day].pnl += Number(t.pnl);
+        byDay[day].count += 1;
+      }
+    });
+
+    const cells = [];
+    for (let i = 0; i < startOffset; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dow = (startOffset + d - 1) % 7;
+      const isWeekend = dow === 0 || dow === 6;
+      const dayData = byDay[d];
+      cells.push({
+        day: d,
+        isWeekend,
+        hasData: Boolean(dayData),
+        pnl: dayData ? dayData.pnl : 0,
+        trades: dayData ? dayData.count : 0,
+      });
+    }
+    return cells;
+  }, [trades]);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.lots || !form.entry || form.pnl === "") return;
 
-    const pnlValue = parseFloat(form.pnl);
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          asset: form.asset,
+          type: form.type,
+          entry_price: form.entry,
+          sl: form.sl || null,
+          tp: form.tp || null,
+          lots: form.lots,
+          pnl: parseFloat(form.pnl),
+          session: form.session.split(" (")[0],
+          setup: form.setup,
+          emotion: form.emotion,
+          error_tag: form.errorTag,
+          chart_url: form.chartUrl || null,
+          notes: form.notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo guardar el trade");
 
-    setTrades((prev) => [
-      {
-        date: "Hoy - Ahora",
-        asset: form.asset,
-        session: form.session.split(" (")[0],
-        type: form.type,
-        lots: form.lots,
-        entry: `${form.entry} ➔ Ejecución`,
-        setup: form.setup,
-        errorTag: form.errorTag.includes("Limpio") || form.errorTag.includes("Sin Errores") ? "Limpio ✅" : form.errorTag,
-        clean: form.errorTag.includes("Sin Errores"),
-        pnl: pnlValue,
-      },
-      ...prev,
-    ]);
-
-    setForm((f) => ({ ...f, lots: "", entry: "", sl: "", tp: "", pnl: "", notes: "" }));
+      setTrades((prev) => [data.trade, ...prev]);
+      setForm((f) => ({ ...f, lots: "", entry: "", sl: "", tp: "", pnl: "", notes: "" }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const filteredTrades = trades.filter((t) => {
-    const text = `${t.asset} ${t.session} ${t.setup} ${t.errorTag}`.toLowerCase();
+    const text = `${t.asset} ${t.session || ""} ${t.setup || ""} ${t.error_tag || ""}`.toLowerCase();
     const matchesSearch = text.includes(search.toLowerCase());
-    const matchesSession = !sessionFilter || t.session.toLowerCase().includes(sessionFilter.toLowerCase());
+    const matchesSession = !sessionFilter || (t.session || "").toLowerCase().includes(sessionFilter.toLowerCase());
     return matchesSearch && matchesSession;
   });
 
@@ -136,8 +265,8 @@ function JournalPro() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold text-white">Trading Journal Ultra-PRO Hub</h1>
-              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold uppercase tracking-wider">
-                {monthLabel}
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold uppercase tracking-wider capitalize">
+                {MONTH_LABEL}
               </span>
             </div>
             <p className="text-xs text-slate-400 font-mono">
@@ -164,75 +293,90 @@ function JournalPro() {
         </div>
       </div>
 
-      {/* KPI Cards (8 métricas) */}
+      {error && <p className="text-rose-400 text-xs font-mono">{error}</p>}
+
+      {trades.length === 0 && !loading && (
+        <div className="glass-panel rounded-2xl p-4 border border-slate-800 text-center text-slate-400 text-xs font-mono">
+          Todavía no has registrado ningún trade en tu cuenta PRO — las métricas de abajo van a
+          llenarse solas apenas registres el primero.
+        </div>
+      )}
+
+      {/* KPI Cards (8 métricas, 100% reales) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono">
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
-            <span>PnL NETO MES</span>
+            <span>PnL NETO {MONTH_LABEL.split(" ")[0].toUpperCase()}</span>
             <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <div className="text-xl font-black text-emerald-400">+$4,430.00 USD</div>
-          <span className="text-[10px] text-slate-500">+12.8% Cuenta Real</span>
+          <div className={`text-xl font-black ${stats.pnlNeto >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            {stats.pnlNeto >= 0 ? "+" : "-"}${Math.abs(stats.pnlNeto).toFixed(2)}
+          </div>
+          <span className="text-[10px] text-slate-500">{trades.length} operaciones totales</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
             <span>WIN RATE</span>
             <PieChart className="w-3.5 h-3.5 text-cyan-400" />
           </div>
-          <div className="text-xl font-black text-white">68.4%</div>
-          <span className="text-[10px] text-cyan-400">26 Ganadas / 12 Perdidas</span>
+          <div className="text-xl font-black text-white">{stats.winRate}%</div>
+          <span className="text-[10px] text-cyan-400">{stats.wins} Ganadas / {stats.losses} Perdidas</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
             <span>PROFIT FACTOR</span>
             <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
           </div>
-          <div className="text-xl font-black text-amber-400">2.15</div>
-          <span className="text-[10px] text-slate-500">Nivel Óptimo (&gt; 1.8)</span>
+          <div className="text-xl font-black text-amber-400">{stats.profitFactor}</div>
+          <span className="text-[10px] text-slate-500">Ganancia / Pérdida</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
-            <span>RATIO R:R PROMEDIO</span>
+            <span>RATIO GANANCIA:PÉRDIDA</span>
             <Target className="w-3.5 h-3.5 text-rose-400" />
           </div>
-          <div className="text-xl font-black text-white">1 : 2.4</div>
-          <span className="text-[10px] text-slate-500">Plan Meta: 1:2.0</span>
+          <div className="text-xl font-black text-white">{stats.avgRR}</div>
+          <span className="text-[10px] text-slate-500">Promedio real</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
             <span>MAX DRAWDOWN</span>
             <ShieldAlert className="w-3.5 h-3.5 text-rose-500" />
           </div>
-          <div className="text-xl font-black text-rose-400">-3.2%</div>
-          <span className="text-[10px] text-slate-500">Límite Permitido: -5.0%</span>
+          <div className="text-xl font-black text-rose-400">${stats.maxDrawdown.toFixed(2)}</div>
+          <span className="text-[10px] text-slate-500">Caída máx. desde pico</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
             <span>DISCIPLINA OPERATIVA</span>
             <Brain className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <div className="text-xl font-black text-emerald-400">94.7%</div>
-          <span className="text-[10px] text-slate-500">Reglas Cumplidas</span>
+          <div className="text-xl font-black text-emerald-400">{stats.disciplina === "—" ? "—" : `${stats.disciplina}%`}</div>
+          <span className="text-[10px] text-slate-500">Trades sin error tag</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-rose-500/20 bg-rose-500/5 space-y-1">
           <div className="text-rose-400 text-[10px] uppercase flex items-center justify-between">
             <span>COSTO DE ERRORES ($)</span>
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
           </div>
-          <div className="text-xl font-black text-rose-400">-$430.00</div>
-          <span className="text-[10px] text-slate-400">2 Trades fuera de Plan</span>
+          <div className="text-xl font-black text-rose-400">
+            {stats.costoErrores === 0 ? "$0.00" : `-$${Math.abs(stats.costoErrores).toFixed(2)}`}
+          </div>
+          <span className="text-[10px] text-slate-400">{stats.errorCount} trades fuera de plan</span>
         </div>
         <div className="glass-panel p-4 rounded-2xl border border-emerald-500/20 bg-emerald-500/5 space-y-1">
           <div className="text-emerald-400 text-[10px] uppercase flex items-center justify-between">
             <span>MEJOR SESIÓN</span>
             <Clock className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <div className="text-xl font-black text-white">Nueva York</div>
-          <span className="text-[10px] text-emerald-400">+$3,240.00 (73% WR)</span>
+          <div className="text-xl font-black text-white">{stats.mejorSesion}</div>
+          <span className="text-[10px] text-emerald-400">
+            {stats.mejorSesion !== "—" ? `+$${stats.mejorSesionPnl.toFixed(2)}` : "Sin datos"}
+          </span>
         </div>
       </div>
 
-      {/* Calendario Visual */}
+      {/* Calendario Visual (real) */}
       <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
         <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
           <div className="flex items-center gap-3">
@@ -242,7 +386,7 @@ function JournalPro() {
             <div>
               <h2 className="text-lg font-bold text-white font-mono">Calendario Visual de PnL Diario</h2>
               <p className="text-xs text-slate-400 font-mono capitalize">
-                Resultados acumulados por jornada operativa ({monthLabel})
+                Resultados reales por jornada operativa ({MONTH_LABEL})
               </p>
             </div>
           </div>
@@ -263,11 +407,18 @@ function JournalPro() {
             if (!cell) {
               return <div key={i} className="h-20 sm:h-24 rounded-2xl bg-slate-950/40 border border-slate-900/50" />;
             }
-            if (cell.isWeekend) {
+            if (!cell.hasData) {
               return (
-                <div key={i} className="h-20 sm:h-24 rounded-2xl bg-slate-950/30 border border-slate-900 p-2 sm:p-3 flex flex-col justify-between opacity-40">
+                <div
+                  key={i}
+                  className={`h-20 sm:h-24 rounded-2xl border p-2 sm:p-3 flex flex-col justify-between ${
+                    cell.isWeekend
+                      ? "bg-slate-950/30 border-slate-900 opacity-40"
+                      : "bg-slate-950/40 border-slate-900/60"
+                  }`}
+                >
                   <span className="text-slate-500 text-[10px]">{cell.day}</span>
-                  <span className="text-[10px] text-slate-600">Weekend</span>
+                  {cell.isWeekend && <span className="text-[10px] text-slate-600">Weekend</span>}
                 </div>
               );
             }
@@ -284,11 +435,11 @@ function JournalPro() {
                 <div className="flex justify-between items-center text-[10px]">
                   <span className="text-white font-bold">{cell.day}</span>
                   <span className={`${positive ? "text-emerald-400" : "text-rose-400"} text-[9px]`}>
-                    {cell.trades} Trades
+                    {cell.trades} Trade{cell.trades > 1 ? "s" : ""}
                   </span>
                 </div>
                 <div className={`${positive ? "text-emerald-400" : "text-rose-400"} font-bold text-xs sm:text-sm`}>
-                  {positive ? "+" : ""}${cell.pnl}
+                  {positive ? "+" : "-"}${Math.abs(cell.pnl).toFixed(0)}
                 </div>
               </div>
             );
@@ -412,9 +563,9 @@ function JournalPro() {
             </div>
 
             <div className="flex items-center justify-end gap-3 pt-2">
-              <button type="submit" className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-extrabold text-xs shadow-lg rose-glow transition-all flex items-center gap-2">
+              <button type="submit" disabled={saving} className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-extrabold text-xs shadow-lg rose-glow transition-all flex items-center gap-2 disabled:opacity-50">
                 <Save className="w-4 h-4" />
-                <span>Guardar en Bitácora PRO</span>
+                <span>{saving ? "Guardando..." : "Guardar en Bitácora PRO"}</span>
               </button>
             </div>
           </form>
@@ -473,10 +624,14 @@ function JournalPro() {
               <span className="text-emerald-400 font-bold flex items-center gap-1.5">
                 <ShieldCheck className="w-4 h-4" /> Detector de Tilt & Venganza
               </span>
-              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">ÓPTIMO</span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[9px] font-bold">
+                {stats.errorCount === 0 ? "ÓPTIMO" : `${stats.errorCount} ALERTAS`}
+              </span>
             </div>
             <p className="text-[11px] text-slate-300">
-              Estado emocional estable. Has cumplido tus descansos mínimos entre ejecuciones hoy.
+              {stats.errorCount === 0
+                ? "Sin trades marcados con error todavía. Cuando registres uno con un tag de fuga, aquí se avisa."
+                : `Tienes ${stats.errorCount} trade(s) marcados con error/fuga. Revisa tu tag de error en la tabla de abajo.`}
             </p>
           </div>
         </div>
@@ -525,67 +680,81 @@ function JournalPro() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
-            <thead>
-              <tr className="text-slate-500 border-b border-slate-800/80">
-                <th className="py-3 font-normal">FECHA / HORA</th>
-                <th className="py-3 font-normal">ACTIVO</th>
-                <th className="py-3 font-normal">SESIÓN</th>
-                <th className="py-3 font-normal">TIPO</th>
-                <th className="py-3 font-normal">LOTES</th>
-                <th className="py-3 font-normal">ENTRADA ➔ SALIDA</th>
-                <th className="py-3 font-normal">ESTRATEGIA</th>
-                <th className="py-3 font-normal">ERROR TAG</th>
-                <th className="py-3 font-normal text-center">GRÁFICO</th>
-                <th className="py-3 font-normal text-right">PnL ($)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {filteredTrades.map((t, i) => (
-                <tr key={i}>
-                  <td className="py-3.5 text-slate-400">{t.date}</td>
-                  <td className="py-3.5 text-white font-semibold">{t.asset}</td>
-                  <td className="py-3.5 text-slate-300">{t.session}</td>
-                  <td className="py-3.5">
-                    <span
-                      className={`px-2 py-0.5 rounded border text-[10px] ${
-                        t.type === "LONG"
-                          ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                          : "bg-rose-500/20 text-rose-400 border-rose-500/30"
-                      }`}
-                    >
-                      {t.type}
-                    </span>
-                  </td>
-                  <td className="py-3.5 text-slate-300">{t.lots}</td>
-                  <td className="py-3.5 text-slate-400">{t.entry}</td>
-                  <td className="py-3.5 text-amber-400">{t.setup}</td>
-                  <td className={`py-3.5 ${t.clean ? "text-emerald-400" : "text-rose-400"}`}>{t.errorTag}</td>
-                  <td className="py-3.5 text-center">
-                    <button
-                      onClick={() => alert("Abriendo gráfico TradingView...")}
-                      className="text-cyan-400 hover:text-cyan-300"
-                    >
-                      <Image className="w-4 h-4 inline" />
-                    </button>
-                  </td>
-                  <td className={`py-3.5 text-right font-bold ${t.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
-                    {t.pnl >= 0 ? "+" : "-"}${Math.abs(t.pnl).toFixed(2)}
-                  </td>
+        {loading ? (
+          <p className="text-slate-500 text-xs font-mono">Cargando tu journal...</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-mono text-xs">
+              <thead>
+                <tr className="text-slate-500 border-b border-slate-800/80">
+                  <th className="py-3 font-normal">FECHA / HORA</th>
+                  <th className="py-3 font-normal">ACTIVO</th>
+                  <th className="py-3 font-normal">SESIÓN</th>
+                  <th className="py-3 font-normal">TIPO</th>
+                  <th className="py-3 font-normal">LOTES</th>
+                  <th className="py-3 font-normal">ENTRADA</th>
+                  <th className="py-3 font-normal">ESTRATEGIA</th>
+                  <th className="py-3 font-normal">ERROR TAG</th>
+                  <th className="py-3 font-normal text-center">GRÁFICO</th>
+                  <th className="py-3 font-normal text-right">PnL ($)</th>
                 </tr>
-              ))}
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {filteredTrades.map((t) => {
+                  const isClean = !t.error_tag || t.error_tag.includes("Limpio") || t.error_tag.includes("Sin Errores");
+                  return (
+                    <tr key={t.id}>
+                      <td className="py-3.5 text-slate-400">
+                        {new Date(t.created_at).toLocaleString("es-CO", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                      </td>
+                      <td className="py-3.5 text-white font-semibold">{t.asset}</td>
+                      <td className="py-3.5 text-slate-300">{t.session || "—"}</td>
+                      <td className="py-3.5">
+                        <span
+                          className={`px-2 py-0.5 rounded border text-[10px] ${
+                            t.type === "LONG" || t.type === "BUY"
+                              ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                              : "bg-rose-500/20 text-rose-400 border-rose-500/30"
+                          }`}
+                        >
+                          {t.type}
+                        </span>
+                      </td>
+                      <td className="py-3.5 text-slate-300">{t.lots || "—"}</td>
+                      <td className="py-3.5 text-slate-400">{t.entry_price}</td>
+                      <td className="py-3.5 text-amber-400">{t.setup || "—"}</td>
+                      <td className={`py-3.5 ${isClean ? "text-emerald-400" : "text-rose-400"}`}>
+                        {t.error_tag || "—"}
+                      </td>
+                      <td className="py-3.5 text-center">
+                        {t.chart_url ? (
+                          <a href={t.chart_url} target="_blank" rel="noreferrer" className="text-cyan-400 hover:text-cyan-300">
+                            <Image className="w-4 h-4 inline" />
+                          </a>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
+                      </td>
+                      <td className={`py-3.5 text-right font-bold ${Number(t.pnl) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                        {Number(t.pnl) >= 0 ? "+" : "-"}${Math.abs(Number(t.pnl)).toFixed(2)}
+                      </td>
+                    </tr>
+                  );
+                })}
 
-              {filteredTrades.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="py-6 text-center text-slate-500">
-                    Sin resultados para ese filtro.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                {filteredTrades.length === 0 && (
+                  <tr>
+                    <td colSpan={10} className="py-6 text-center text-slate-500">
+                      {trades.length === 0
+                        ? "Todavía no has registrado ningún trade. ¡Registra el primero arriba!"
+                        : "Sin resultados para ese filtro."}
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

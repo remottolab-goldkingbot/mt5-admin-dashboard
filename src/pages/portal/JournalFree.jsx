@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Sparkles,
@@ -15,46 +15,79 @@ import {
   List,
 } from "lucide-react";
 
-const INITIAL_TRADES = [
-  { date: "15 Sep - 09:30", asset: "XAUUSD", type: "BUY", entry: "2510.50", notes: "Reacción en soporte H1", pnl: 200 },
-  { date: "14 Sep - 14:15", asset: "EURUSD", type: "SELL", entry: "1.0950", notes: "Ruptura fallida de sesión", pnl: -120 },
-  { date: "11 Sep - 10:05", asset: "BTCUSDT", type: "BUY", entry: "57400.00", notes: "Scalp de continuación", pnl: 400 },
-];
+const FREE_VISIBLE_LIMIT = 2;
 
 function JournalFree() {
-  const [trades, setTrades] = useState(INITIAL_TRADES);
-  const [totals, setTotals] = useState({ pnl: 480, wins: 2, total: 3 });
+  const [trades, setTrades] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
+
   const [form, setForm] = useState({ asset: "", type: "BUY", entry: "", pnl: "", notes: "" });
 
-  const handleSubmit = (e) => {
+  const token = localStorage.getItem("token");
+
+  const fetchTrades = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/my`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo cargar tu journal");
+      setTrades(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchTrades();
+  }, []);
+
+  const stats = useMemo(() => {
+    const total = trades.length;
+    const wins = trades.filter((t) => Number(t.pnl) >= 0).length;
+    const pnl = trades.reduce((acc, t) => acc + Number(t.pnl), 0);
+    const winRate = total > 0 ? ((wins / total) * 100).toFixed(1) : "0.0";
+    return { total, wins, losses: total - wins, pnl, winRate };
+  }, [trades]);
+
+  const visibleTrades = trades.slice(0, FREE_VISIBLE_LIMIT);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.asset || !form.entry || form.pnl === "") return;
 
-    const pnlValue = parseFloat(form.pnl);
-    const isWin = pnlValue >= 0;
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          asset: form.asset.toUpperCase(),
+          type: form.type,
+          entry_price: form.entry,
+          pnl: parseFloat(form.pnl),
+          notes: form.notes || null,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo guardar el trade");
 
-    setTrades((prev) => [
-      {
-        date: "Hoy - Ahora",
-        asset: form.asset.toUpperCase(),
-        type: form.type,
-        entry: form.entry,
-        notes: form.notes || "Sin notas",
-        pnl: pnlValue,
-      },
-      ...prev,
-    ]);
-
-    setTotals((prev) => {
-      const total = prev.total + 1;
-      const wins = prev.wins + (isWin ? 1 : 0);
-      return { pnl: prev.pnl + pnlValue, wins, total };
-    });
-
-    setForm({ asset: "", type: "BUY", entry: "", pnl: "", notes: "" });
+      setTrades((prev) => [data.trade, ...prev]);
+      setForm({ asset: "", type: "BUY", entry: "", pnl: "", notes: "" });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
-
-  const winRate = ((totals.wins / totals.total) * 100).toFixed(1);
 
   return (
     <div className="space-y-8 font-sans">
@@ -93,15 +126,17 @@ function JournalFree() {
         </button>
       </div>
 
-      {/* KPI Cards: 3 activas + 3 con candado PRO */}
+      {error && <p className="text-rose-400 text-xs font-mono">{error}</p>}
+
+      {/* KPI Cards: 3 reales + 3 con candado PRO */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4 font-mono">
         <div className="glass-panel p-4 rounded-2xl border border-slate-800 space-y-1">
           <div className="text-slate-400 text-[10px] uppercase flex items-center justify-between">
-            <span>PnL NETO MES</span>
+            <span>PnL NETO TOTAL</span>
             <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
           </div>
-          <div className="text-xl font-black text-emerald-400">
-            {totals.pnl >= 0 ? "+" : "-"}${Math.abs(totals.pnl).toFixed(2)}
+          <div className={`text-xl font-black ${stats.pnl >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+            {stats.pnl >= 0 ? "+" : "-"}${Math.abs(stats.pnl).toFixed(2)}
           </div>
           <span className="text-[10px] text-slate-500">Acumulado</span>
         </div>
@@ -111,9 +146,9 @@ function JournalFree() {
             <span>WIN RATE</span>
             <PieChart className="w-3.5 h-3.5 text-cyan-400" />
           </div>
-          <div className="text-xl font-black text-white">{winRate}%</div>
+          <div className="text-xl font-black text-white">{stats.winRate}%</div>
           <span className="text-[10px] text-cyan-400">
-            {totals.wins} W / {totals.total - totals.wins} L
+            {stats.wins} W / {stats.losses} L
           </span>
         </div>
 
@@ -122,7 +157,7 @@ function JournalFree() {
             <span>TOTAL TRADES</span>
             <Activity className="w-3.5 h-3.5 text-blue-400" />
           </div>
-          <div className="text-xl font-black text-white">{totals.total}</div>
+          <div className="text-xl font-black text-white">{stats.total}</div>
           <span className="text-[10px] text-slate-500">Registrados</span>
         </div>
 
@@ -259,10 +294,11 @@ function JournalFree() {
             <div className="flex items-center justify-end">
               <button
                 type="submit"
-                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2"
+                disabled={saving}
+                className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                <span>Guardar en Bitácora</span>
+                <span>{saving ? "Guardando..." : "Guardar en Bitácora"}</span>
               </button>
             </div>
           </form>
@@ -310,7 +346,7 @@ function JournalFree() {
               <span>Historial Reciente de Operaciones</span>
             </h2>
             <p className="text-[11px] text-slate-400 font-mono">
-              Plan Free: Muestra últimos registros del mes activo
+              Plan Free: Muestra tus últimos {FREE_VISIBLE_LIMIT} registros
             </p>
           </div>
 
@@ -323,48 +359,62 @@ function JournalFree() {
           </Link>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs">
-            <thead>
-              <tr className="text-slate-500 border-b border-slate-800/80">
-                <th className="py-3 font-normal">FECHA</th>
-                <th className="py-3 font-normal">ACTIVO</th>
-                <th className="py-3 font-normal">TIPO</th>
-                <th className="py-3 font-normal">ENTRADA</th>
-                <th className="py-3 font-normal">NOTAS</th>
-                <th className="py-3 font-normal text-right">PnL ($)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/50">
-              {trades.map((t, i) => (
-                <tr key={i}>
-                  <td className="py-3.5 text-slate-400">{t.date}</td>
-                  <td className="py-3.5 text-white font-semibold">{t.asset}</td>
-                  <td className="py-3.5">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] ${
-                        t.type === "BUY"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-rose-500/20 text-rose-400"
+        {loading ? (
+          <p className="text-slate-500 text-xs font-mono">Cargando tu journal...</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left font-mono text-xs">
+              <thead>
+                <tr className="text-slate-500 border-b border-slate-800/80">
+                  <th className="py-3 font-normal">FECHA</th>
+                  <th className="py-3 font-normal">ACTIVO</th>
+                  <th className="py-3 font-normal">TIPO</th>
+                  <th className="py-3 font-normal">ENTRADA</th>
+                  <th className="py-3 font-normal">NOTAS</th>
+                  <th className="py-3 font-normal text-right">PnL ($)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/50">
+                {visibleTrades.map((t) => (
+                  <tr key={t.id}>
+                    <td className="py-3.5 text-slate-400">
+                      {new Date(t.created_at).toLocaleDateString("es-CO", { day: "2-digit", month: "short" })}
+                    </td>
+                    <td className="py-3.5 text-white font-semibold">{t.asset}</td>
+                    <td className="py-3.5">
+                      <span
+                        className={`px-2 py-0.5 rounded text-[10px] ${
+                          t.type === "BUY"
+                            ? "bg-emerald-500/20 text-emerald-400"
+                            : "bg-rose-500/20 text-rose-400"
+                        }`}
+                      >
+                        {t.type}
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-slate-300">{t.entry_price}</td>
+                    <td className="py-3.5 text-slate-400">{t.notes || "Sin notas"}</td>
+                    <td
+                      className={`py-3.5 text-right font-bold ${
+                        Number(t.pnl) >= 0 ? "text-emerald-400" : "text-rose-400"
                       }`}
                     >
-                      {t.type}
-                    </span>
-                  </td>
-                  <td className="py-3.5 text-slate-300">{t.entry}</td>
-                  <td className="py-3.5 text-slate-400">{t.notes}</td>
-                  <td
-                    className={`py-3.5 text-right font-bold ${
-                      t.pnl >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    {t.pnl >= 0 ? "+" : "-"}${Math.abs(t.pnl).toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      {Number(t.pnl) >= 0 ? "+" : "-"}${Math.abs(Number(t.pnl)).toFixed(2)}
+                    </td>
+                  </tr>
+                ))}
+
+                {visibleTrades.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="py-6 text-center text-slate-500">
+                      Todavía no has registrado ningún trade. ¡Registra el primero arriba!
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 text-center space-y-2 font-mono">
           <span className="text-xs text-slate-400">
