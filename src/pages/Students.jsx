@@ -83,6 +83,26 @@ function Students() {
     }
   };
 
+  const toggleMembership = async (u) => {
+    const newMembership = u.membership === "pro" ? "free" : "pro";
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/auth/users/${u.id}/membership`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ membership: newMembership }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo actualizar la membresía");
+      fetchUsers();
+    } catch (err) {
+      setError(err.message);
+      setTimeout(() => setError(""), 3000);
+    }
+  };
+
   return (
     <div className="space-y-6 font-sans">
       <div className="glass-panel rounded-3xl p-6 border border-slate-800 space-y-6 font-mono text-xs">
@@ -123,6 +143,7 @@ function Students() {
                     <th className="py-2">USUARIO</th>
                     <th className="py-2">CORREO</th>
                     <th className="py-2">ROL</th>
+                    <th className="py-2">PLAN</th>
                     <th className="py-2">LICENCIAS</th>
                     <th className="py-2">REGISTRADO</th>
                     <th className="py-2 text-right">ACCIONES</th>
@@ -147,6 +168,23 @@ function Students() {
                           <span className="px-2 py-0.5 rounded border text-[10px] bg-slate-800 text-slate-300 border-slate-700">
                             Alumno
                           </span>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        {u.role === "admin" ? (
+                          <span className="text-slate-600">—</span>
+                        ) : (
+                          <button
+                            onClick={() => toggleMembership(u)}
+                            title="Clic para cambiar de plan"
+                            className={`px-2 py-0.5 rounded border text-[10px] font-bold ${
+                              u.membership === "pro"
+                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30 hover:bg-amber-500/40"
+                                : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                            }`}
+                          >
+                            {u.membership === "pro" ? "★ PRO" : "Free"}
+                          </button>
                         )}
                       </td>
                       <td className="py-3">
@@ -201,7 +239,7 @@ function Students() {
 
                   {paginated.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="py-6 text-center text-slate-500">
+                      <td colSpan={7} className="py-6 text-center text-slate-500">
                         Sin resultados{search ? ` para "${search}"` : ""}.
                       </td>
                     </tr>

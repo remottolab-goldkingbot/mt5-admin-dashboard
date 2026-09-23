@@ -76,20 +76,32 @@ function ClientLayout({ children }) {
           </div>
 
           <div className="p-4 border-b border-slate-800/60">
-            <div className="glass-panel-gold rounded-xl p-3 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                <Crown className="w-4 h-4" />
+            {user?.membership === "pro" ? (
+              <div className="glass-panel-gold rounded-xl p-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <Crown className="w-4 h-4" />
+                </div>
+                <div className="overflow-hidden">
+                  <span className="text-xs font-bold text-white block truncate">
+                    Membresía PRO
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />{" "}
+                    Activa
+                  </span>
+                </div>
               </div>
-              <div className="overflow-hidden">
-                <span className="text-xs font-bold text-white block truncate">
-                  Membresía VIP Pro
-                </span>
-                <span className="text-[10px] font-mono text-emerald-400 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" /> Activo
-                  de Por Vida
-                </span>
+            ) : (
+              <div className="glass-panel rounded-xl p-3 flex items-center gap-3 border border-slate-800">
+                <div className="w-8 h-8 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center shrink-0">
+                  <Crown className="w-4 h-4" />
+                </div>
+                <div className="overflow-hidden">
+                  <span className="text-xs font-bold text-white block truncate">Plan Free</span>
+                  <span className="text-[10px] font-mono text-slate-500">Acceso limitado</span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <nav className="p-4 space-y-1.5 text-xs font-medium">
