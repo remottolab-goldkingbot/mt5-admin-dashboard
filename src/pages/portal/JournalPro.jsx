@@ -342,7 +342,7 @@ function JournalPro({ account, onAccountUpdated, accountSelectorProps }) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white">Trading Journal Ultra-PRO Hub</h1>
+              <h1 className="text-2xl font-bold text-white">Trading Journal PRO</h1>
               <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-mono text-[10px] font-bold uppercase tracking-wider capitalize">
                 {MONTH_LABEL}
               </span>

@@ -243,29 +243,30 @@ function JournalFree({ account, accountSelectorProps }) {
         ))}
       </div>
 
-      {/* Curva de Equity (version simple, disponible en Free) */}
-      <EquityChart trades={trades} compact settings={account} />
-
-      {/* Calendario bloqueado */}
-      <div className="glass-panel p-8 rounded-3xl border border-amber-500/30 relative overflow-hidden text-center space-y-4 grid-bg">
-        <div className="max-w-xl mx-auto space-y-3 relative z-10">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto">
-            <Calendar className="w-6 h-6" />
-          </div>
-          <h3 className="text-xl font-bold text-white font-mono">Calendario Visual de PnL Diario</h3>
-          <p className="text-xs text-slate-400 font-mono">
-            Visualiza tus días verdes y rojos en una cuadrícula mensual interactiva, analiza tu
-            mejor día de trading y desglosa métricas por jornada operativa.
-          </p>
-          <div className="pt-2">
-            <Link
-              to="/#section-pricing"
-              className="inline-block px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg gold-glow font-mono transition-all"
-            >
-              Desbloquear Calendario en Plan PRO →
-            </Link>
+      {/* Calendario bloqueado + Curva de Saldo (2 columnas, igual que PRO) */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="glass-panel p-8 rounded-3xl border border-amber-500/30 relative overflow-hidden text-center space-y-4 grid-bg flex flex-col justify-center">
+          <div className="max-w-xl mx-auto space-y-3 relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 mx-auto">
+              <Calendar className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-white font-mono">Calendario Visual de PnL</h3>
+            <p className="text-xs text-slate-400 font-mono">
+              Visualiza tus días verdes y rojos en una cuadrícula mensual interactiva, analiza tu
+              mejor día de trading y desglosa métricas por jornada operativa.
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/#section-pricing"
+                className="inline-block px-6 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-extrabold text-xs shadow-lg gold-glow font-mono transition-all"
+              >
+                Desbloquear en Plan PRO →
+              </Link>
+            </div>
           </div>
         </div>
+
+        <EquityChart trades={trades} settings={account} />
       </div>
 
       {/* Form + Checklist */}

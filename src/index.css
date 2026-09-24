@@ -20,6 +20,15 @@ body {
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
+/* Version mas opaca + mas blur + sombra, para menus flotantes (dropdowns) que no deben
+   dejar ver el contenido de atras con tanta claridad, manteniendo el look "vidrio". */
+.glass-panel-solid {
+  background: rgba(9, 12, 20, 0.97);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 60px -12px rgba(0, 0, 0, 0.85), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
 .glass-panel-gold {
   background: rgba(212, 175, 55, 0.04);
   backdrop-filter: blur(16px);
