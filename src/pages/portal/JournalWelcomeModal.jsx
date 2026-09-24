@@ -55,11 +55,15 @@ function JournalWelcomeModal() {
   const phrase = MOTIVATIONAL[Math.floor(Math.random() * MOTIVATIONAL.length)];
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 font-sans">
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 font-sans"
+      onClick={() => setVisible(false)}
+    >
       <div
         className={`glass-panel rounded-3xl p-8 w-full max-w-sm text-center space-y-4 border ${
           overtrading ? "border-rose-500/40" : "border-amber-500/30"
         }`}
+        onClick={(e) => e.stopPropagation()}
       >
         {overtrading ? (
           <>

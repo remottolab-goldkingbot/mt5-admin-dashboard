@@ -326,8 +326,14 @@ function Students() {
       </p>
 
       {userToDelete && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-rose-500/30 text-center space-y-4">
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setUserToDelete(null)}
+        >
+          <div
+            className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-rose-500/30 text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto" />
             <h2 className="text-white font-bold text-lg">¿Eliminar esta cuenta?</h2>
             <p className="text-slate-400 text-xs font-mono">
@@ -357,8 +363,14 @@ function Students() {
         </div>
       )}
       {userToDemote && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-amber-500/30 text-center space-y-4">
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setUserToDemote(null)}
+        >
+          <div
+            className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-amber-500/30 text-center space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
             <AlertTriangle className="w-10 h-10 text-amber-400 mx-auto" />
             <h2 className="text-white font-bold text-lg">¿Quitar permisos de administrador?</h2>
             <p className="text-slate-400 text-xs font-mono">

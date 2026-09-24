@@ -697,8 +697,14 @@ function LicenseGenerator() {
 
       {/* MODAL ELIMINAR */}
       {showDeleteModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-          <div className="glass-panel p-8 rounded-3xl w-96 border border-rose-500/30">
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div
+            className="glass-panel p-8 rounded-3xl w-96 border border-rose-500/30"
+            onClick={(e) => e.stopPropagation()}
+          >
             <h2 className="text-rose-400 font-bold mb-4">Confirmar eliminación</h2>
             <p className="text-slate-400 mb-6 text-sm">
               ¿Seguro que deseas eliminar la licencia de{" "}
@@ -724,8 +730,17 @@ function LicenseGenerator() {
 
       {/* MODAL PERFIL / CENTRO DE CONTROL DE LA LICENCIA */}
       {showProfileModal && selectedLicense && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="glass-panel p-8 rounded-3xl w-full max-w-md border border-slate-800 text-xs font-mono space-y-5">
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setShowProfileModal(false);
+            setSelectedLicense(null);
+          }}
+        >
+          <div
+            className="glass-panel p-8 rounded-3xl w-full max-w-md border border-slate-800 text-xs font-mono space-y-5"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div>
               <h2 className="text-lg font-bold text-white">Editar Licencia</h2>
               <p className="text-slate-500">{selectedLicense.license_key}</p>

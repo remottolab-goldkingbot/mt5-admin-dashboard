@@ -1,8 +1,11 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { ChevronDown, Plus, Wallet, Settings, Trash2 } from "lucide-react";
+import useClickOutside from "../../hooks/useClickOutside";
 
 function AccountSelector({ accounts, selectedId, onSelect, onAddNew, onEdit, onDelete, isPro }) {
   const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  useClickOutside(wrapperRef, () => setOpen(false), open);
   const selected = accounts.find((a) => a.id === selectedId);
 
   if (!selected) return null;
@@ -21,7 +24,7 @@ function AccountSelector({ accounts, selectedId, onSelect, onAddNew, onEdit, onD
   }
 
   return (
-    <div className="relative font-mono text-xs">
+    <div ref={wrapperRef} className="relative font-mono text-xs">
       <button
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-slate-300"

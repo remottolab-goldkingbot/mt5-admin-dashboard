@@ -36,8 +36,14 @@ function AccountFormModal({ mode = "create", account, onSave, onClose, forceComp
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 font-sans">
-      <div className="glass-panel p-8 rounded-3xl w-full max-w-md border border-cyan-500/30 space-y-5 font-mono text-xs">
+    <div
+      className="fixed inset-0 bg-black/70 flex items-center justify-center z-[100] p-4 font-sans"
+      onClick={forceComplete ? undefined : onClose}
+    >
+      <div
+        className="glass-panel p-8 rounded-3xl w-full max-w-md border border-cyan-500/30 space-y-5 font-mono text-xs"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between border-b border-slate-800 pb-3">
           <h2 className="text-white font-bold text-base flex items-center gap-2">
             <Settings className="w-4 h-4 text-cyan-400" />
