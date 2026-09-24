@@ -162,7 +162,7 @@ function JournalFree({ account, accountSelectorProps }) {
       </div>
 
       {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6 glass-panel rounded-3xl border border-slate-800">
+      <div className="relative z-30 flex flex-wrap items-center justify-between gap-4 p-6 glass-panel rounded-3xl border border-slate-800">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400">
             <BookOpen className="w-6 h-6" />

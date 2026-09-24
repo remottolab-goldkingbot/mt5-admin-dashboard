@@ -335,7 +335,7 @@ function JournalPro({ account, onAccountUpdated, accountSelectorProps }) {
   return (
     <div className="space-y-8 font-sans">
       {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-6 glass-panel-rose rounded-3xl border border-rose-500/30">
+      <div className="relative z-30 flex flex-wrap items-center justify-between gap-4 p-6 glass-panel-rose rounded-3xl border border-rose-500/30">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
             <ShieldCheck className="w-8 h-8" />

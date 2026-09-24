@@ -62,7 +62,7 @@ function ClientLayout({ children }) {
 
       {/* SIDEBAR — fijo y visible siempre desde lg, drawer deslizable antes de eso */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-72 sm:w-64 bg-[#0b0f17] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transform transition-transform duration-300 lg:translate-x-0 ${
+        className={`fixed lg:sticky lg:top-0 inset-y-0 left-0 z-50 w-72 sm:w-64 lg:h-screen lg:self-start bg-[#0b0f17] border-r border-slate-800/80 flex flex-col justify-between shrink-0 transform transition-transform duration-300 lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

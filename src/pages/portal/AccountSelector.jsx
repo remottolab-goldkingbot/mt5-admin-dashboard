@@ -35,7 +35,7 @@ function AccountSelector({ accounts, selectedId, onSelect, onAddNew, onEdit, onD
       </button>
 
       {open && (
-        <div className="absolute z-20 mt-2 w-72 glass-panel border border-slate-800 rounded-2xl p-2 space-y-1">
+        <div className="absolute z-[200] mt-2 w-72 glass-panel border border-slate-800 rounded-2xl p-2 space-y-1">
           {accounts.map((acc) => (
             <div
               key={acc.id}
