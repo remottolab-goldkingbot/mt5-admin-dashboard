@@ -24,6 +24,7 @@ import {
   Pencil,
   Trash2,
   X,
+  Settings,
 } from "lucide-react";
 import EquityChart from "./EquityChart";
 
@@ -37,6 +38,10 @@ const MONTH_LABEL = new Date().toLocaleDateString("es-CO", { month: "long", year
 
 function JournalPro() {
   const [trades, setTrades] = useState([]);
+  const [settings, setSettings] = useState(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsDraft, setSettingsDraft] = useState(null);
+  const [savingSettings, setSavingSettings] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -85,7 +90,46 @@ function JournalPro() {
 
   useEffect(() => {
     fetchTrades();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/settings`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setSettings(data);
+        setSettingsDraft(data);
+      }
+    } catch {
+      // silencioso: si falla, el gráfico simplemente no muestra metas
+    }
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/settings`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(settingsDraft),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo guardar la configuración");
+
+      setSettings(data.settings);
+      setSettingsOpen(false);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   // ==========================
   // Estadísticas reales derivadas de tus trades (empieza todo en 0 / "—" sin datos)
@@ -526,7 +570,24 @@ function JournalPro() {
           </div>
         </div>
 
-        <EquityChart trades={trades} />
+        <div className="space-y-3">
+          <button
+            onClick={() => {
+              setSettingsDraft(settings);
+              setSettingsOpen(true);
+            }}
+            className="w-full py-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-cyan-500/40 text-slate-300 text-xs font-mono font-bold flex items-center justify-center gap-2"
+          >
+            <Settings className="w-3.5 h-3.5 text-cyan-400" />
+            <span>
+              Configurar cuenta:{" "}
+              <strong className="text-white">
+                {settings?.account_type === "fondeo" ? "Fondeo (Prop Firm)" : "Real / Propia"}
+              </strong>
+            </span>
+          </button>
+          <EquityChart trades={trades} settings={settings} />
+        </div>
       </div>
 
       {/* Formulario avanzado + calculadora */}
@@ -889,6 +950,117 @@ function JournalPro() {
                 Cancelar
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {settingsOpen && settingsDraft && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="glass-panel p-8 rounded-3xl w-full max-w-md border border-cyan-500/30 space-y-5 font-mono text-xs">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-white font-bold text-base flex items-center gap-2">
+                <Settings className="w-4 h-4 text-cyan-400" />
+                <span>Configuración de Cuenta</span>
+              </h2>
+              <button onClick={() => setSettingsOpen(false)} className="text-slate-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-slate-400 mb-1.5">TIPO DE CUENTA</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSettingsDraft((d) => ({ ...d, account_type: "fondeo" }))}
+                  className={`py-2.5 rounded-xl font-bold transition-all ${
+                    settingsDraft.account_type === "fondeo"
+                      ? "bg-amber-500 text-black"
+                      : "bg-slate-900 border border-slate-800 text-slate-400"
+                  }`}
+                >
+                  Fondeo (Prop Firm)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSettingsDraft((d) => ({ ...d, account_type: "real" }))}
+                  className={`py-2.5 rounded-xl font-bold transition-all ${
+                    settingsDraft.account_type === "real"
+                      ? "bg-cyan-500 text-black"
+                      : "bg-slate-900 border border-slate-800 text-slate-400"
+                  }`}
+                >
+                  Real / Propia
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-slate-400 mb-1.5">SALDO INICIAL ($)</label>
+              <input
+                type="number"
+                value={settingsDraft.initial_balance || 0}
+                onChange={(e) => setSettingsDraft((d) => ({ ...d, initial_balance: e.target.value }))}
+                className="w-full glass-input p-2.5 rounded-xl text-white"
+              />
+            </div>
+
+            {settingsDraft.account_type === "real" && (
+              <label className="flex items-center gap-2 p-3 rounded-xl bg-slate-900 border border-slate-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={Boolean(settingsDraft.has_personal_goals)}
+                  onChange={(e) => setSettingsDraft((d) => ({ ...d, has_personal_goals: e.target.checked }))}
+                  className="rounded bg-slate-950 border-slate-700 text-cyan-500"
+                />
+                <span className="text-slate-300">Definir mis propias metas de disciplina</span>
+              </label>
+            )}
+
+            {(settingsDraft.account_type === "fondeo" || settingsDraft.has_personal_goals) && (
+              <div className="space-y-3 pt-1 border-t border-slate-800">
+                <div>
+                  <label className="block text-slate-400 mb-1.5">
+                    {settingsDraft.account_type === "fondeo" ? "OBJETIVO DE BENEFICIO ($)" : "MI META PERSONAL ($)"}
+                  </label>
+                  <input
+                    type="number"
+                    value={settingsDraft.profit_target || ""}
+                    onChange={(e) => setSettingsDraft((d) => ({ ...d, profit_target: e.target.value }))}
+                    placeholder="Ej: 1000"
+                    className="w-full glass-input p-2.5 rounded-xl text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1.5">REDUCCIÓN DIARIA MÁXIMA ($)</label>
+                  <input
+                    type="number"
+                    value={settingsDraft.daily_limit || ""}
+                    onChange={(e) => setSettingsDraft((d) => ({ ...d, daily_limit: e.target.value }))}
+                    placeholder="Ej: 200"
+                    className="w-full glass-input p-2.5 rounded-xl text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-slate-400 mb-1.5">REDUCCIÓN MÁXIMA TOTAL ($)</label>
+                  <input
+                    type="number"
+                    value={settingsDraft.max_limit || ""}
+                    onChange={(e) => setSettingsDraft((d) => ({ ...d, max_limit: e.target.value }))}
+                    placeholder="Ej: 500"
+                    className="w-full glass-input p-2.5 rounded-xl text-white"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={saveSettings}
+              disabled={savingSettings}
+              className="w-full py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-extrabold disabled:opacity-50"
+            >
+              {savingSettings ? "Guardando..." : "Guardar Configuración"}
+            </button>
           </div>
         </div>
       )}

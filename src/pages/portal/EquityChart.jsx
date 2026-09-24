@@ -12,35 +12,48 @@ import {
 } from "recharts";
 import { TrendingUp } from "lucide-react";
 
-// Valores de referencia del plan (ejemplo/editable — no vienen de datos reales de tu cuenta todavía)
-const SALDO_INICIAL = 0;
-const OBJETIVO_BENEFICIO = 1000;
-const REDUCCION_DIARIA = -200;
-const REDUCCION_MAXIMA = -500;
+/**
+ * settings (opcional — si no se pasa, el gráfico queda simple: solo Saldo + Saldo Inicial).
+ * {
+ *   account_type: "fondeo" | "real",
+ *   initial_balance: number,
+ *   profit_target: number | null,
+ *   daily_limit: number | null,
+ *   max_limit: number | null,
+ *   has_personal_goals: boolean
+ * }
+ */
+function EquityChart({ trades, compact = false, settings = null }) {
+  const initialBalance = Number(settings?.initial_balance || 0);
 
-const LEGEND = [
-  { label: "Saldo", color: "#22c55e", dash: false },
-  { label: "Saldo Inicial", color: "#22d3ee", dash: true },
-  { label: "Objetivo de Beneficio", color: "#eab308", dash: true },
-  { label: "Reducción Diaria", color: "#f59e0b", dash: true },
-  { label: "Reducción Máxima", color: "#ef4444", dash: true },
-];
-
-function EquityChart({ trades, compact = false }) {
   const data = useMemo(() => {
     const chrono = [...trades].sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-    let running = 0;
-    const points = [{ name: "Inicio", saldo: 0 }];
+    let running = initialBalance;
+    const points = [{ name: "Inicio", saldo: initialBalance }];
     chrono.forEach((t, i) => {
       running += Number(t.pnl);
       points.push({ name: `#${i + 1}`, saldo: running });
     });
     return points;
-  }, [trades]);
+  }, [trades, initialBalance]);
 
   const hasData = trades.length > 0;
-  const lastValue = hasData ? data[data.length - 1].saldo : 0;
-  const isPositive = lastValue >= 0;
+  const lastValue = hasData ? data[data.length - 1].saldo : initialBalance;
+  const netChange = lastValue - initialBalance;
+  const isPositive = netChange >= 0;
+
+  // Solo se muestran metas si hay settings Y (es cuenta de fondeo, o es real con metas personales activadas)
+  const showGoals = Boolean(settings) && (settings.account_type === "fondeo" || settings.has_personal_goals);
+
+  const showTarget = showGoals && settings.profit_target;
+  const showDaily = showGoals && settings.daily_limit;
+  const showMax = showGoals && settings.max_limit;
+
+  const legend = [{ label: "Saldo", color: "#22c55e", dash: false }];
+  if (settings) legend.push({ label: "Saldo Inicial", color: "#22d3ee", dash: true });
+  if (showTarget) legend.push({ label: settings.account_type === "fondeo" ? "Objetivo Firm" : "Meta Personal", color: "#eab308", dash: true });
+  if (showDaily) legend.push({ label: "Reducción Diaria", color: "#f59e0b", dash: true });
+  if (showMax) legend.push({ label: "Reducción Máxima", color: "#ef4444", dash: true });
 
   return (
     <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 h-full">
@@ -51,7 +64,7 @@ function EquityChart({ trades, compact = false }) {
         </h3>
         {hasData && (
           <span className={`text-sm font-black font-mono ${isPositive ? "text-emerald-400" : "text-rose-400"}`}>
-            {isPositive ? "+" : "-"}${Math.abs(lastValue).toFixed(2)}
+            {isPositive ? "+" : "-"}${Math.abs(netChange).toFixed(2)}
           </span>
         )}
       </div>
@@ -76,10 +89,18 @@ function EquityChart({ trades, compact = false }) {
                 formatter={(value) => [`$${Number(value).toFixed(2)}`, "Saldo"]}
               />
 
-              <ReferenceLine y={SALDO_INICIAL} stroke="#22d3ee" strokeDasharray="4 4" label={{ value: "Saldo Inicial", position: "insideTopLeft", fill: "#22d3ee", fontSize: 9 }} />
-              <ReferenceLine y={OBJETIVO_BENEFICIO} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Objetivo", position: "insideTopLeft", fill: "#eab308", fontSize: 9 }} />
-              <ReferenceLine y={REDUCCION_DIARIA} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Reducc. Diaria", position: "insideBottomLeft", fill: "#f59e0b", fontSize: 9 }} />
-              <ReferenceLine y={REDUCCION_MAXIMA} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "Reducc. Máxima", position: "insideBottomLeft", fill: "#ef4444", fontSize: 9 }} />
+              {settings && (
+                <ReferenceLine y={initialBalance} stroke="#22d3ee" strokeDasharray="4 4" label={{ value: "Saldo Inicial", position: "insideTopLeft", fill: "#22d3ee", fontSize: 9 }} />
+              )}
+              {showTarget && (
+                <ReferenceLine y={initialBalance + Number(settings.profit_target)} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Objetivo", position: "insideTopLeft", fill: "#eab308", fontSize: 9 }} />
+              )}
+              {showDaily && (
+                <ReferenceLine y={initialBalance - Number(settings.daily_limit)} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Reducc. Diaria", position: "insideBottomLeft", fill: "#f59e0b", fontSize: 9 }} />
+              )}
+              {showMax && (
+                <ReferenceLine y={initialBalance - Number(settings.max_limit)} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "Reducc. Máxima", position: "insideBottomLeft", fill: "#ef4444", fontSize: 9 }} />
+              )}
 
               <Area type="monotone" dataKey="saldo" stroke="none" fill="url(#saldoFill)" />
               <Line type="monotone" dataKey="saldo" stroke="#22c55e" strokeWidth={2.5} dot={false} />
@@ -93,7 +114,7 @@ function EquityChart({ trades, compact = false }) {
       )}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 justify-center pt-1 border-t border-slate-800/60">
-        {LEGEND.map((item) => (
+        {legend.map((item) => (
           <span key={item.label} className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400">
             <span
               className="w-2.5 h-2.5 rounded-full inline-block"
@@ -104,10 +125,12 @@ function EquityChart({ trades, compact = false }) {
         ))}
       </div>
 
-      <p className="text-[9px] text-slate-600 font-mono text-center">
-        * Objetivo/Reducción diaria/máxima son valores de ejemplo — se pueden personalizar por
-        cuenta más adelante.
-      </p>
+      {(showTarget || showDaily || showMax) && (
+        <p className="text-[9px] text-slate-600 font-mono text-center">
+          * Reducción diaria se muestra como línea fija de referencia, no se recalcula día por día
+          todavía.
+        </p>
+      )}
     </div>
   );
 }
