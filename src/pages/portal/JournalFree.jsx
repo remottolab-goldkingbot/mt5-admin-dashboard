@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import EquityChart from "./EquityChart";
 
-function JournalFree() {
+function JournalFree({ account }) {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,7 +35,7 @@ function JournalFree() {
 
   const fetchTrades = async () => {
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/my`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/my?account_id=${account.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -50,7 +50,7 @@ function JournalFree() {
 
   useEffect(() => {
     fetchTrades();
-  }, []);
+  }, [account.id]);
 
   const stats = useMemo(() => {
     const total = trades.length;
@@ -70,6 +70,7 @@ function JournalFree() {
     setError("");
 
     const payload = {
+      account_id: account.id,
       asset: form.asset.toUpperCase(),
       type: form.type,
       entry_price: form.entry,
@@ -239,7 +240,7 @@ function JournalFree() {
       </div>
 
       {/* Curva de Equity (version simple, disponible en Free) */}
-      <EquityChart trades={trades} compact />
+      <EquityChart trades={trades} compact settings={account} />
 
       {/* Calendario bloqueado */}
       <div className="glass-panel p-8 rounded-3xl border border-amber-500/30 relative overflow-hidden text-center space-y-4 grid-bg">

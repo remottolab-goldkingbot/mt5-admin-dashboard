@@ -91,7 +91,7 @@ function EquityChart({ trades, compact = false, settings = null }) {
       {hasData ? (
         <div className={compact ? "h-48" : "h-72"}>
           <ResponsiveContainer width="100%" height="100%">
-            <ComposedChart data={data} margin={{ top: 5, right: 10, left: 0, bottom: 0 }}>
+            <ComposedChart data={data} margin={{ top: 5, right: 55, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="saldoFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
@@ -116,16 +116,16 @@ function EquityChart({ trades, compact = false, settings = null }) {
               />
 
               {settings && (
-                <ReferenceLine y={initialBalance} stroke="#22d3ee" strokeDasharray="4 4" label={{ value: "Saldo Inicial", position: "left", fill: "#22d3ee", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance} stroke="#22d3ee" strokeDasharray="4 4" label={{ value: "Inicial", position: "left", fill: "#22d3ee", fontSize: 9 }} />
               )}
               {showTarget && (
-                <ReferenceLine y={initialBalance + Number(settings.profit_target)} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Objetivo", position: "right", fill: "#eab308", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance + Number(settings.profit_target)} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Meta", position: "right", fill: "#eab308", fontSize: 9 }} />
               )}
               {showDaily && (
-                <ReferenceLine y={initialBalance - Number(settings.daily_limit)} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Reducc. Diaria", position: "right", fill: "#f59e0b", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance - Number(settings.daily_limit)} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Diaria", position: "right", fill: "#f59e0b", fontSize: 9 }} />
               )}
               {showMax && (
-                <ReferenceLine y={initialBalance - Number(settings.max_limit)} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "Reducc. Máxima", position: "left", fill: "#ef4444", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance - Number(settings.max_limit)} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "Máxima", position: "left", fill: "#ef4444", fontSize: 9 }} />
               )}
 
               <Area type="monotone" dataKey="saldo" stroke="none" fill="url(#saldoFill)" />
