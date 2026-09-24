@@ -208,8 +208,19 @@ function JournalPro() {
         hasData: Boolean(dayData),
         pnl: dayData ? dayData.pnl : 0,
         trades: dayData ? dayData.count : 0,
+        isBest: false,
       });
     }
+
+    // Marcar el mejor día (mayor PnL positivo) para resaltarlo distinto
+    let bestCell = null;
+    cells.forEach((c) => {
+      if (c && c.hasData && c.pnl > 0 && (!bestCell || c.pnl > bestCell.pnl)) {
+        bestCell = c;
+      }
+    });
+    if (bestCell) bestCell.isBest = true;
+
     return cells;
   }, [trades]);
 
@@ -469,13 +480,13 @@ function JournalPro() {
           <div className="grid grid-cols-7 gap-1.5 sm:gap-2 font-mono text-[10px]">
             {calendarCells.map((cell, i) => {
               if (!cell) {
-                return <div key={i} className="h-14 sm:h-16 rounded-xl bg-slate-950/40 border border-slate-900/50" />;
+                return <div key={i} className="h-16 sm:h-[4.5rem] rounded-xl bg-slate-950/40 border border-slate-900/50" />;
               }
               if (!cell.hasData) {
                 return (
                   <div
                     key={i}
-                    className={`h-14 sm:h-16 rounded-xl border p-1.5 flex flex-col justify-between ${
+                    className={`h-16 sm:h-[4.5rem] rounded-xl border p-1.5 flex flex-col justify-between ${
                       cell.isWeekend
                         ? "bg-slate-950/30 border-slate-900 opacity-40"
                         : "bg-slate-950/40 border-slate-900/60"
@@ -489,14 +500,24 @@ function JournalPro() {
               return (
                 <div
                   key={i}
-                  className={`h-14 sm:h-16 rounded-xl p-1.5 flex flex-col justify-between transition-all cursor-pointer ${
-                    positive
+                  className={`h-16 sm:h-[4.5rem] rounded-xl p-1.5 flex flex-col justify-between transition-all cursor-pointer relative ${
+                    cell.isBest
+                      ? "bg-amber-500/15 border border-amber-500/50 hover:border-amber-400 gold-glow"
+                      : positive
                       ? "bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400"
                       : "bg-rose-500/10 border border-rose-500/30 hover:border-rose-400"
                   }`}
                 >
-                  <span className="text-white font-bold">{cell.day}</span>
-                  <span className={`${positive ? "text-emerald-400" : "text-rose-400"} font-bold`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`font-bold ${cell.isBest ? "text-amber-300" : "text-white"}`}>
+                      {cell.day}
+                    </span>
+                    {cell.isBest && <span className="text-[9px]">🏆</span>}
+                  </div>
+                  <span className={`${cell.isBest ? "text-amber-300" : positive ? "text-emerald-400" : "text-rose-400"} text-[9px] font-bold`}>
+                    {cell.trades} Trade{cell.trades > 1 ? "s" : ""}
+                  </span>
+                  <span className={`${cell.isBest ? "text-amber-300" : positive ? "text-emerald-400" : "text-rose-400"} font-bold`}>
                     {positive ? "+" : "-"}${Math.abs(cell.pnl).toFixed(0)}
                   </span>
                 </div>
