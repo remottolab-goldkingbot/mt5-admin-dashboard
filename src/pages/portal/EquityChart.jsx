@@ -55,6 +55,25 @@ function EquityChart({ trades, compact = false, settings = null }) {
   if (showDaily) legend.push({ label: "Reducción Diaria", color: "#f59e0b", dash: true });
   if (showMax) legend.push({ label: "Reducción Máxima", color: "#ef4444", dash: true });
 
+  // Dominio del eje Y ajustado al rango real (no fuerza a incluir el 0),
+  // así las líneas de referencia no quedan amontonadas arriba en cuentas grandes.
+  const yDomain = useMemo(() => {
+    if (!hasData) return ["auto", "auto"];
+
+    const values = data.map((d) => d.saldo);
+    let min = Math.min(...values, initialBalance);
+    let max = Math.max(...values, initialBalance);
+
+    if (showMax) min = Math.min(min, initialBalance - Number(settings.max_limit));
+    if (showDaily) min = Math.min(min, initialBalance - Number(settings.daily_limit));
+    if (showTarget) max = Math.max(max, initialBalance + Number(settings.profit_target));
+
+    const range = max - min || Math.max(Math.abs(initialBalance) * 0.1, 100);
+    const padding = range * 0.18;
+
+    return [Math.floor(min - padding), Math.ceil(max + padding)];
+  }, [data, hasData, initialBalance, showMax, showDaily, showTarget, settings]);
+
   return (
     <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-4 h-full">
       <div className="flex items-center justify-between">
@@ -82,7 +101,14 @@ function EquityChart({ trades, compact = false, settings = null }) {
 
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
               <XAxis dataKey="name" tick={{ fill: "#64748b", fontSize: 10 }} axisLine={{ stroke: "#1e293b" }} tickLine={false} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} axisLine={{ stroke: "#1e293b" }} tickLine={false} width={45} />
+              <YAxis
+                domain={yDomain}
+                tick={{ fill: "#64748b", fontSize: 10 }}
+                axisLine={{ stroke: "#1e293b" }}
+                tickLine={false}
+                width={50}
+                tickFormatter={(v) => `$${v}`}
+              />
               <Tooltip
                 contentStyle={{ background: "#0b0f17", border: "1px solid #1e293b", borderRadius: 8, fontSize: 11 }}
                 labelStyle={{ color: "#94a3b8" }}
@@ -90,16 +116,16 @@ function EquityChart({ trades, compact = false, settings = null }) {
               />
 
               {settings && (
-                <ReferenceLine y={initialBalance} stroke="#22d3ee" strokeDasharray="4 4" label={{ value: "Saldo Inicial", position: "insideTopLeft", fill: "#22d3ee", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance} stroke="#22d3ee" strokeDasharray="4 4" label={{ value: "Saldo Inicial", position: "left", fill: "#22d3ee", fontSize: 9 }} />
               )}
               {showTarget && (
-                <ReferenceLine y={initialBalance + Number(settings.profit_target)} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Objetivo", position: "insideTopLeft", fill: "#eab308", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance + Number(settings.profit_target)} stroke="#eab308" strokeDasharray="4 4" label={{ value: "Objetivo", position: "right", fill: "#eab308", fontSize: 9 }} />
               )}
               {showDaily && (
-                <ReferenceLine y={initialBalance - Number(settings.daily_limit)} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Reducc. Diaria", position: "insideBottomLeft", fill: "#f59e0b", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance - Number(settings.daily_limit)} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: "Reducc. Diaria", position: "right", fill: "#f59e0b", fontSize: 9 }} />
               )}
               {showMax && (
-                <ReferenceLine y={initialBalance - Number(settings.max_limit)} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "Reducc. Máxima", position: "insideBottomLeft", fill: "#ef4444", fontSize: 9 }} />
+                <ReferenceLine y={initialBalance - Number(settings.max_limit)} stroke="#ef4444" strokeDasharray="4 4" label={{ value: "Reducc. Máxima", position: "left", fill: "#ef4444", fontSize: 9 }} />
               )}
 
               <Area type="monotone" dataKey="saldo" stroke="none" fill="url(#saldoFill)" />
