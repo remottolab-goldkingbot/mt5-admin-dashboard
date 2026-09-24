@@ -22,6 +22,7 @@ import {
   Sparkles,
   Lock,
 } from "lucide-react";
+import EquityChart from "./EquityChart";
 
 const ASSETS = ["XAUUSD (Oro)", "EURUSD", "SOLUSDT", "BTCUSDT", "US30 (Dow Jones)"];
 const SESSIONS = ["Nueva York (NY)", "Londres (LDN)", "Asia / Tokio", "Overlap NY/LDN"];
@@ -376,75 +377,71 @@ function JournalPro() {
         </div>
       </div>
 
-      {/* Calendario Visual (real) */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
-              <Calendar className="w-5 h-5" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white font-mono">Calendario Visual de PnL Diario</h2>
-              <p className="text-xs text-slate-400 font-mono capitalize">
-                Resultados reales por jornada operativa ({MONTH_LABEL})
-              </p>
+      {/* Calendario Visual + Curva de Equity (2 columnas) */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400">
+                <Calendar className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white font-mono">Calendario de PnL</h2>
+                <p className="text-xs text-slate-400 font-mono capitalize">{MONTH_LABEL}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-7 gap-2 sm:gap-3 text-center font-mono text-xs text-slate-400 font-bold">
-          <div className="text-slate-600">DOM</div>
-          <div>LUN</div>
-          <div>MAR</div>
-          <div>MIÉ</div>
-          <div>JUE</div>
-          <div>VIE</div>
-          <div className="text-slate-600">SÁB</div>
-        </div>
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center font-mono text-[10px] text-slate-400 font-bold">
+            <div className="text-slate-600">DOM</div>
+            <div>LUN</div>
+            <div>MAR</div>
+            <div>MIÉ</div>
+            <div>JUE</div>
+            <div>VIE</div>
+            <div className="text-slate-600">SÁB</div>
+          </div>
 
-        <div className="grid grid-cols-7 gap-2 sm:gap-3 font-mono text-xs">
-          {calendarCells.map((cell, i) => {
-            if (!cell) {
-              return <div key={i} className="h-20 sm:h-24 rounded-2xl bg-slate-950/40 border border-slate-900/50" />;
-            }
-            if (!cell.hasData) {
+          <div className="grid grid-cols-7 gap-1.5 sm:gap-2 font-mono text-[10px]">
+            {calendarCells.map((cell, i) => {
+              if (!cell) {
+                return <div key={i} className="h-14 sm:h-16 rounded-xl bg-slate-950/40 border border-slate-900/50" />;
+              }
+              if (!cell.hasData) {
+                return (
+                  <div
+                    key={i}
+                    className={`h-14 sm:h-16 rounded-xl border p-1.5 flex flex-col justify-between ${
+                      cell.isWeekend
+                        ? "bg-slate-950/30 border-slate-900 opacity-40"
+                        : "bg-slate-950/40 border-slate-900/60"
+                    }`}
+                  >
+                    <span className="text-slate-500">{cell.day}</span>
+                  </div>
+                );
+              }
+              const positive = cell.pnl >= 0;
               return (
                 <div
                   key={i}
-                  className={`h-20 sm:h-24 rounded-2xl border p-2 sm:p-3 flex flex-col justify-between ${
-                    cell.isWeekend
-                      ? "bg-slate-950/30 border-slate-900 opacity-40"
-                      : "bg-slate-950/40 border-slate-900/60"
+                  className={`h-14 sm:h-16 rounded-xl p-1.5 flex flex-col justify-between transition-all cursor-pointer ${
+                    positive
+                      ? "bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400"
+                      : "bg-rose-500/10 border border-rose-500/30 hover:border-rose-400"
                   }`}
                 >
-                  <span className="text-slate-500 text-[10px]">{cell.day}</span>
-                  {cell.isWeekend && <span className="text-[10px] text-slate-600">Weekend</span>}
-                </div>
-              );
-            }
-            const positive = cell.pnl >= 0;
-            return (
-              <div
-                key={i}
-                className={`h-20 sm:h-24 rounded-2xl p-2 sm:p-3 flex flex-col justify-between transition-all cursor-pointer ${
-                  positive
-                    ? "bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400"
-                    : "bg-rose-500/10 border border-rose-500/30 hover:border-rose-400"
-                }`}
-              >
-                <div className="flex justify-between items-center text-[10px]">
                   <span className="text-white font-bold">{cell.day}</span>
-                  <span className={`${positive ? "text-emerald-400" : "text-rose-400"} text-[9px]`}>
-                    {cell.trades} Trade{cell.trades > 1 ? "s" : ""}
+                  <span className={`${positive ? "text-emerald-400" : "text-rose-400"} font-bold`}>
+                    {positive ? "+" : "-"}${Math.abs(cell.pnl).toFixed(0)}
                   </span>
                 </div>
-                <div className={`${positive ? "text-emerald-400" : "text-rose-400"} font-bold text-xs sm:text-sm`}>
-                  {positive ? "+" : "-"}${Math.abs(cell.pnl).toFixed(0)}
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
+
+        <EquityChart trades={trades} />
       </div>
 
       {/* Formulario avanzado + calculadora */}

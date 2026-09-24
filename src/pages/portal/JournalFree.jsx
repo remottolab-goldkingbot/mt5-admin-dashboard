@@ -14,6 +14,7 @@ import {
   CheckSquare,
   List,
 } from "lucide-react";
+import EquityChart from "./EquityChart";
 
 function JournalFree() {
   const [trades, setTrades] = useState([]);
@@ -179,6 +180,9 @@ function JournalFree() {
           </div>
         ))}
       </div>
+
+      {/* Curva de Equity (version simple, disponible en Free) */}
+      <EquityChart trades={trades} compact />
 
       {/* Calendario bloqueado */}
       <div className="glass-panel p-8 rounded-3xl border border-amber-500/30 relative overflow-hidden text-center space-y-4 grid-bg">
