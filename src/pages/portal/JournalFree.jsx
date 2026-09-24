@@ -13,6 +13,10 @@ import {
   Save,
   CheckSquare,
   List,
+  Pencil,
+  Trash2,
+  AlertTriangle,
+  X,
 } from "lucide-react";
 import EquityChart from "./EquityChart";
 
@@ -21,6 +25,9 @@ function JournalFree() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [tradeToDelete, setTradeToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [form, setForm] = useState({ asset: "", type: "BUY", entry: "", pnl: "", notes: "" });
 
@@ -61,30 +68,80 @@ function JournalFree() {
 
     setSaving(true);
     setError("");
+
+    const payload = {
+      asset: form.asset.toUpperCase(),
+      type: form.type,
+      entry_price: form.entry,
+      pnl: parseFloat(form.pnl),
+      notes: form.notes || null,
+    };
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal`, {
-        method: "POST",
+      const url = editingId
+        ? `${import.meta.env.VITE_API_URL}/journal/${editingId}`
+        : `${import.meta.env.VITE_API_URL}/journal`;
+
+      const res = await fetch(url, {
+        method: editingId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          asset: form.asset.toUpperCase(),
-          type: form.type,
-          entry_price: form.entry,
-          pnl: parseFloat(form.pnl),
-          notes: form.notes || null,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo guardar el trade");
 
-      setTrades((prev) => [data.trade, ...prev]);
+      if (editingId) {
+        setTrades((prev) => prev.map((t) => (t.id === editingId ? data.trade : t)));
+      } else {
+        setTrades((prev) => [data.trade, ...prev]);
+      }
+
       setForm({ asset: "", type: "BUY", entry: "", pnl: "", notes: "" });
+      setEditingId(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (t) => {
+    setEditingId(t.id);
+    setForm({
+      asset: t.asset,
+      type: t.type,
+      entry: t.entry_price || "",
+      pnl: String(t.pnl),
+      notes: t.notes || "",
+    });
+    document.getElementById("freeTradeForm")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm({ asset: "", type: "BUY", entry: "", pnl: "", notes: "" });
+  };
+
+  const confirmDelete = async () => {
+    if (!tradeToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/${tradeToDelete.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo eliminar el trade");
+
+      setTrades((prev) => prev.filter((t) => t.id !== tradeToDelete.id));
+      setTradeToDelete(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -212,9 +269,15 @@ function JournalFree() {
           <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
               <Edit className="w-4 h-4 text-blue-400" />
-              <span>Registro Básico de Operación</span>
+              <span>{editingId ? "Editando Operación" : "Registro Básico de Operación"}</span>
             </h2>
-            <span className="text-xs font-mono text-slate-500">Free Version</span>
+            {editingId ? (
+              <button onClick={cancelEdit} className="text-xs font-mono text-slate-500 hover:text-white flex items-center gap-1">
+                <X className="w-3.5 h-3.5" /> Cancelar edición
+              </button>
+            ) : (
+              <span className="text-xs font-mono text-slate-500">Free Version</span>
+            )}
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5 font-mono text-xs">
@@ -300,7 +363,7 @@ function JournalFree() {
                 className="px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                <span>{saving ? "Guardando..." : "Guardar en Bitácora"}</span>
+                <span>{saving ? "Guardando..." : editingId ? "Guardar Cambios" : "Guardar en Bitácora"}</span>
               </button>
             </div>
           </form>
@@ -374,6 +437,7 @@ function JournalFree() {
                   <th className="py-3 font-normal">ENTRADA</th>
                   <th className="py-3 font-normal">NOTAS</th>
                   <th className="py-3 font-normal text-right">PnL ($)</th>
+                  <th className="py-3 font-normal text-right">ACCIONES</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
@@ -403,12 +467,30 @@ function JournalFree() {
                     >
                       {Number(t.pnl) >= 0 ? "+" : "-"}${Math.abs(Number(t.pnl)).toFixed(2)}
                     </td>
+                    <td className="py-3.5 text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => startEdit(t)}
+                          className="p-1.5 rounded bg-slate-800 hover:bg-blue-500/30 text-blue-400"
+                          title="Editar"
+                        >
+                          <Pencil className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setTradeToDelete(t)}
+                          className="p-1.5 rounded bg-slate-800 hover:bg-rose-500/30 text-rose-400"
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
 
                 {visibleTrades.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="py-6 text-center text-slate-500">
+                    <td colSpan={7} className="py-6 text-center text-slate-500">
                       Todavía no has registrado ningún trade. ¡Registra el primero arriba!
                     </td>
                   </tr>
@@ -431,6 +513,35 @@ function JournalFree() {
           </div>
         </div>
       </div>
+
+      {tradeToDelete && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-rose-500/30 text-center space-y-4">
+            <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto" />
+            <h2 className="text-white font-bold text-lg">¿Eliminar este trade?</h2>
+            <p className="text-slate-400 text-xs font-mono">
+              <span className="text-white">{tradeToDelete.asset}</span> del{" "}
+              {new Date(tradeToDelete.created_at).toLocaleDateString("es-CO")} se va a eliminar
+              permanentemente.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs disabled:opacity-50"
+              >
+                {deleting ? "Eliminando..." : "Sí, eliminar"}
+              </button>
+              <button
+                onClick={() => setTradeToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

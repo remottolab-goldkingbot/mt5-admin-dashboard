@@ -21,6 +21,9 @@ import {
   Download,
   Sparkles,
   Lock,
+  Pencil,
+  Trash2,
+  X,
 } from "lucide-react";
 import EquityChart from "./EquityChart";
 
@@ -40,6 +43,9 @@ function JournalPro() {
   const [mode, setMode] = useState("manual");
   const [search, setSearch] = useState("");
   const [sessionFilter, setSessionFilter] = useState("");
+  const [editingId, setEditingId] = useState(null);
+  const [tradeToDelete, setTradeToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const [form, setForm] = useState({
     asset: ASSETS[0],
@@ -213,38 +219,96 @@ function JournalPro() {
 
     setSaving(true);
     setError("");
+
+    const payload = {
+      asset: form.asset,
+      type: form.type,
+      entry_price: form.entry,
+      sl: form.sl || null,
+      tp: form.tp || null,
+      lots: form.lots,
+      pnl: parseFloat(form.pnl),
+      session: form.session.split(" (")[0],
+      setup: form.setup,
+      emotion: form.emotion,
+      error_tag: form.errorTag,
+      chart_url: form.chartUrl || null,
+      notes: form.notes || null,
+    };
+
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal`, {
-        method: "POST",
+      const url = editingId
+        ? `${import.meta.env.VITE_API_URL}/journal/${editingId}`
+        : `${import.meta.env.VITE_API_URL}/journal`;
+
+      const res = await fetch(url, {
+        method: editingId ? "PUT" : "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          asset: form.asset,
-          type: form.type,
-          entry_price: form.entry,
-          sl: form.sl || null,
-          tp: form.tp || null,
-          lots: form.lots,
-          pnl: parseFloat(form.pnl),
-          session: form.session.split(" (")[0],
-          setup: form.setup,
-          emotion: form.emotion,
-          error_tag: form.errorTag,
-          chart_url: form.chartUrl || null,
-          notes: form.notes || null,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || "No se pudo guardar el trade");
 
-      setTrades((prev) => [data.trade, ...prev]);
+      if (editingId) {
+        setTrades((prev) => prev.map((t) => (t.id === editingId ? data.trade : t)));
+      } else {
+        setTrades((prev) => [data.trade, ...prev]);
+      }
+
       setForm((f) => ({ ...f, lots: "", entry: "", sl: "", tp: "", pnl: "", notes: "" }));
+      setEditingId(null);
     } catch (err) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const startEdit = (t) => {
+    setEditingId(t.id);
+    setForm({
+      asset: ASSETS.find((a) => a.startsWith(t.asset)) || t.asset,
+      session: SESSIONS.find((s) => s.startsWith(t.session)) || SESSIONS[0],
+      type: t.type,
+      lots: t.lots || "",
+      entry: t.entry_price || "",
+      sl: t.sl || "",
+      tp: t.tp || "",
+      pnl: String(t.pnl),
+      setup: t.setup || SETUPS[0],
+      emotion: t.emotion || EMOTIONS[0],
+      errorTag: t.error_tag || ERROR_TAGS[0],
+      chartUrl: t.chart_url || "",
+      notes: t.notes || "",
+    });
+    document.getElementById("tradeFormSection")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null);
+    setForm((f) => ({ ...f, lots: "", entry: "", sl: "", tp: "", pnl: "", notes: "" }));
+  };
+
+  const confirmDelete = async () => {
+    if (!tradeToDelete) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/journal/${tradeToDelete.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo eliminar el trade");
+
+      setTrades((prev) => prev.filter((t) => t.id !== tradeToDelete.id));
+      setTradeToDelete(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -450,11 +514,17 @@ function JournalPro() {
           <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <h2 className="text-base font-bold text-white font-mono flex items-center gap-2">
               <Edit3 className="w-4 h-4 text-amber-400" />
-              <span>Registro Ultra-PRO (Auditoría Avanzada)</span>
+              <span>{editingId ? "Editando Operación PRO" : "Registro Ultra-PRO (Auditoría Avanzada)"}</span>
             </h2>
-            <span className="text-xs font-mono text-amber-400 flex items-center gap-1">
-              <Zap className="w-3.5 h-3.5" /> MQL5 Sync Ready
-            </span>
+            {editingId ? (
+              <button onClick={cancelEdit} className="text-xs font-mono text-slate-500 hover:text-white flex items-center gap-1">
+                <X className="w-3.5 h-3.5" /> Cancelar edición
+              </button>
+            ) : (
+              <span className="text-xs font-mono text-amber-400 flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5" /> MQL5 Sync Ready
+              </span>
+            )}
           </div>
 
           {/* Selector Manual / Automático */}
@@ -562,7 +632,7 @@ function JournalPro() {
             <div className="flex items-center justify-end gap-3 pt-2">
               <button type="submit" disabled={saving} className="px-8 py-3.5 rounded-xl bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-400 hover:to-rose-500 text-white font-extrabold text-xs shadow-lg rose-glow transition-all flex items-center gap-2 disabled:opacity-50">
                 <Save className="w-4 h-4" />
-                <span>{saving ? "Guardando..." : "Guardar en Bitácora PRO"}</span>
+                <span>{saving ? "Guardando..." : editingId ? "Guardar Cambios" : "Guardar en Bitácora PRO"}</span>
               </button>
             </div>
           </form>
@@ -694,6 +764,7 @@ function JournalPro() {
                   <th className="py-3 font-normal">ERROR TAG</th>
                   <th className="py-3 font-normal text-center">GRÁFICO</th>
                   <th className="py-3 font-normal text-right">PnL ($)</th>
+                  <th className="py-3 font-normal text-right">ACCIONES</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/50">
@@ -735,13 +806,31 @@ function JournalPro() {
                       <td className={`py-3.5 text-right font-bold ${Number(t.pnl) >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
                         {Number(t.pnl) >= 0 ? "+" : "-"}${Math.abs(Number(t.pnl)).toFixed(2)}
                       </td>
+                      <td className="py-3.5 text-right">
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            onClick={() => startEdit(t)}
+                            className="p-1.5 rounded bg-slate-800 hover:bg-blue-500/30 text-blue-400"
+                            title="Editar"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => setTradeToDelete(t)}
+                            className="p-1.5 rounded bg-slate-800 hover:bg-rose-500/30 text-rose-400"
+                            title="Eliminar"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
 
                 {filteredTrades.length === 0 && (
                   <tr>
-                    <td colSpan={10} className="py-6 text-center text-slate-500">
+                    <td colSpan={11} className="py-6 text-center text-slate-500">
                       {trades.length === 0
                         ? "Todavía no has registrado ningún trade. ¡Registra el primero arriba!"
                         : "Sin resultados para ese filtro."}
@@ -753,6 +842,35 @@ function JournalPro() {
           </div>
         )}
       </div>
+
+      {tradeToDelete && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="glass-panel p-8 rounded-3xl w-full max-w-sm border border-rose-500/30 text-center space-y-4">
+            <AlertTriangle className="w-10 h-10 text-rose-400 mx-auto" />
+            <h2 className="text-white font-bold text-lg">¿Eliminar este trade?</h2>
+            <p className="text-slate-400 text-xs font-mono">
+              <span className="text-white">{tradeToDelete.asset}</span> del{" "}
+              {new Date(tradeToDelete.created_at).toLocaleDateString("es-CO")} se va a eliminar
+              permanentemente.
+            </p>
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={confirmDelete}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs disabled:opacity-50"
+              >
+                {deleting ? "Eliminando..." : "Sí, eliminar"}
+              </button>
+              <button
+                onClick={() => setTradeToDelete(null)}
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
