@@ -26,6 +26,7 @@ import {
   X,
 } from "lucide-react";
 import EquityChart from "./EquityChart";
+import AccountSelector from "./AccountSelector";
 
 const ASSETS = ["XAUUSD (Oro)", "EURUSD", "SOLUSDT", "BTCUSDT", "US30 (Dow Jones)"];
 const SESSIONS = ["Nueva York (NY)", "Londres (LDN)", "Asia / Tokio", "Overlap NY/LDN"];
@@ -35,7 +36,7 @@ const ERROR_TAGS = ["Sin Errores (Ejecución Limpia)", "Mover SL en contra", "Ci
 
 const MONTH_LABEL = new Date().toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 
-function JournalPro({ account }) {
+function JournalPro({ account, onAccountUpdated, accountSelectorProps }) {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -353,6 +354,7 @@ function JournalPro({ account }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-3 font-mono">
+          {accountSelectorProps && <AccountSelector {...accountSelectorProps} />}
           <button
             onClick={() => alert("Importador MQL5: arrastra tu archivo .HTML o .CSV de MetaTrader para procesar automáticamente todos los trades.")}
             className="px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 hover:border-amber-400 text-slate-300 font-bold text-xs transition-all flex items-center gap-2"

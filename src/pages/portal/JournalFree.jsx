@@ -19,8 +19,9 @@ import {
   X,
 } from "lucide-react";
 import EquityChart from "./EquityChart";
+import AccountSelector from "./AccountSelector";
 
-function JournalFree({ account }) {
+function JournalFree({ account, accountSelectorProps }) {
   const [trades, setTrades] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -174,13 +175,16 @@ function JournalFree({ account }) {
           </div>
         </div>
 
-        <button
-          onClick={() => document.getElementById("freeTradeForm")?.scrollIntoView({ behavior: "smooth" })}
-          className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2 font-mono"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Registrar Trade</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {accountSelectorProps && <AccountSelector {...accountSelectorProps} />}
+          <button
+            onClick={() => document.getElementById("freeTradeForm")?.scrollIntoView({ behavior: "smooth" })}
+            className="px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs transition-all flex items-center gap-2 font-mono"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Registrar Trade</span>
+          </button>
+        </div>
       </div>
 
       {error && <p className="text-rose-400 text-xs font-mono">{error}</p>}

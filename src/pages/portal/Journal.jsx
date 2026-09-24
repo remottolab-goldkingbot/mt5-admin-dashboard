@@ -4,7 +4,6 @@ import JournalFree from "./JournalFree";
 import JournalPro from "./JournalPro";
 import JournalWelcomeModal from "./JournalWelcomeModal";
 import AccountFormModal from "./AccountFormModal";
-import AccountSelector from "./AccountSelector";
 import { AlertTriangle } from "lucide-react";
 
 function Journal() {
@@ -118,24 +117,35 @@ function Journal() {
     <>
       <JournalWelcomeModal />
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <AccountSelector
-          accounts={accounts}
-          selectedId={selectedId}
-          onSelect={setSelectedId}
-          onAddNew={() => setFormModal({ mode: "create", account: null })}
-          onEdit={(acc) => setFormModal({ mode: "edit", account: acc })}
-          onDelete={(acc) => setAccountToDelete(acc)}
-          isPro={isPro}
-        />
-      </div>
-
       {error && <p className="text-rose-400 text-xs font-mono mb-4">{error}</p>}
 
       {selectedAccount && (isPro ? (
-        <JournalPro account={selectedAccount} onAccountUpdated={fetchAccounts} />
+        <JournalPro
+          account={selectedAccount}
+          onAccountUpdated={fetchAccounts}
+          accountSelectorProps={{
+            accounts,
+            selectedId,
+            onSelect: setSelectedId,
+            onAddNew: () => setFormModal({ mode: "create", account: null }),
+            onEdit: (acc) => setFormModal({ mode: "edit", account: acc }),
+            onDelete: (acc) => setAccountToDelete(acc),
+            isPro,
+          }}
+        />
       ) : (
-        <JournalFree account={selectedAccount} />
+        <JournalFree
+          account={selectedAccount}
+          accountSelectorProps={{
+            accounts,
+            selectedId,
+            onSelect: setSelectedId,
+            onAddNew: () => setFormModal({ mode: "create", account: null }),
+            onEdit: (acc) => setFormModal({ mode: "edit", account: acc }),
+            onDelete: (acc) => setAccountToDelete(acc),
+            isPro,
+          }}
+        />
       ))}
 
       {formModal && (
