@@ -14,6 +14,7 @@ import PortalOverview from "./pages/portal/Overview";
 import PortalBots from "./pages/portal/Bots";
 import PortalIndicators from "./pages/portal/Indicators";
 import PortalAcademy from "./pages/portal/Academy";
+import PortalAcademyLesson from "./pages/portal/AcademyLesson";
 import PortalJournal from "./pages/portal/Journal";
 import PortalSettings from "./pages/portal/Settings";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -35,6 +36,7 @@ function App() {
                 <Route path="/bots" element={<PortalBots />} />
                 <Route path="/indicadores" element={<PortalIndicators />} />
                 <Route path="/academia" element={<PortalAcademy />} />
+                <Route path="/academia/:moduleId" element={<PortalAcademyLesson />} />
                 <Route path="/journal" element={<PortalJournal />} />
                 <Route path="/ajustes" element={<PortalSettings />} />
               </Routes>

@@ -1,4 +1,5 @@
 import { useAuth } from "../../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Lock } from "lucide-react";
 
 const MODULES = [
@@ -66,6 +67,7 @@ const MODULES = [
 
 function Academy() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const isPro = user?.membership === "pro";
 
   const globalProgress = isPro ? "65%" : "20%";
@@ -111,7 +113,7 @@ function Academy() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 font-mono text-xs">
-        {MODULES.map((m) => {
+        {MODULES.map((m, i) => {
           const locked = m.pro && !isPro;
           return (
             <div
@@ -165,6 +167,7 @@ function Academy() {
                 </div>
                 <button
                   disabled={locked}
+                  onClick={() => !locked && navigate(`/portal/academia/${i + 1}`)}
                   className={`w-full font-bold text-xs py-2.5 rounded-xl transition-all ${
                     locked
                       ? "bg-slate-800/50 text-slate-600 cursor-not-allowed"
