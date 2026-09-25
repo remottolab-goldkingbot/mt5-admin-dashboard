@@ -47,8 +47,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Actualiza campos del usuario en memoria y localStorage sin necesitar re-login
+  // (ej: cuando el usuario guarda su usuario de TradingView)
+  const updateUser = (partialData) => {
+    setUser((prev) => {
+      const updated = { ...prev, ...partialData };
+      localStorage.setItem("user", JSON.stringify(updated));
+      return updated;
+    });
+  };
+
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );
