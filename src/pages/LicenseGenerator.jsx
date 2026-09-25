@@ -24,7 +24,7 @@ import {
 // solo ayuda al admin a recordar qué bot vendió; el backend actual no tiene
 // columna "ea" en la tabla licenses).
 const EA_OPTIONS = [
-  "Gold Cascade Pro v4.2",
+  "Gold King Bot Miner V1.0",
   "Forex Institutional Alpha",
   "Solana Grid Master EA",
 ];
@@ -78,6 +78,7 @@ function LicenseGenerator() {
     email: "",
     phone: "",
     durationLabel: "1 Año",
+    ea_name: EA_OPTIONS[0],
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [showResetAlert, setShowResetAlert] = useState(false);
@@ -158,7 +159,7 @@ function LicenseGenerator() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, email, phone, plan }),
+        body: JSON.stringify({ name, email, phone, plan, ea_name: ea }),
       });
 
       const data = await res.json();
@@ -255,6 +256,7 @@ function LicenseGenerator() {
             email: editDraft.email,
             phone: editDraft.phone,
             plan,
+            ea_name: editDraft.ea_name,
           }),
         }
       );
@@ -270,6 +272,7 @@ function LicenseGenerator() {
               email: editDraft.email,
               phone: editDraft.phone,
               plan,
+              ea_name: editDraft.ea_name,
               expires_at: data.license?.expires_at ?? prev.expires_at,
             }
           : prev
@@ -582,6 +585,7 @@ function LicenseGenerator() {
                           phone: license.phone || "",
                           phoneCountry: "CO",
                           durationLabel: PLAN_TO_DURATION[license.plan] || "Vitalicia",
+                          ea_name: license.ea_name || EA_OPTIONS[0],
                         });
                         setShowProfileModal(true);
                       }}
@@ -782,6 +786,21 @@ function LicenseGenerator() {
                     País detectado: {getCountryName(editDraft.phoneCountry)}
                   </p>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-slate-400 mb-1">ALGORITMO / EA</label>
+                <select
+                  value={editDraft.ea_name}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, ea_name: e.target.value }))}
+                  className="w-full glass-input p-2.5 rounded-xl text-white"
+                >
+                  {EA_OPTIONS.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>
