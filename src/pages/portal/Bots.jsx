@@ -31,12 +31,6 @@ const ACCENT = {
   cyan: { text: "text-cyan-400", border: "border-cyan-500/30", bg: "bg-cyan-500/10" },
 };
 
-const PLAN_LABEL = {
-  monthly: "Demo 30 Días",
-  yearly: "1 Año",
-  lifetime: "Vitalicia",
-};
-
 function getConnectionStatus(lastSeen) {
   if (!lastSeen) return "Sin conexión";
   const diffMinutes = (new Date() - new Date(lastSeen)) / 1000 / 60;
@@ -219,7 +213,7 @@ function Bots() {
                   <span className="text-slate-400 flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5" /> Licencia:
                   </span>
-                  <span className="text-white font-bold">{PLAN_LABEL[realLicense.plan] || "Vitalicia"}</span>
+                  <span className="text-white font-bold">{realLicense.plan || "Vitalicia"}</span>
                 </div>
 
                 <div className="flex items-center justify-between pt-2 border-t border-slate-800">

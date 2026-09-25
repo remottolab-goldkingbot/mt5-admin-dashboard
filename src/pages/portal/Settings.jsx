@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { KeyRound, Clipboard, RefreshCw, ShieldCheck, ShieldOff } from "lucide-react";
 
-const PLAN_LABEL = {
-  monthly: "Demo 30 Días",
-  yearly: "1 Año",
-  lifetime: "Vitalicia",
-};
-
 function getExpiration(date) {
   if (!date) return "Vitalicia";
   const diff = Math.ceil((new Date(date) - new Date()) / (1000 * 60 * 60 * 24));
@@ -115,7 +109,7 @@ function Settings() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Duración:</span>
-                <span className="text-white">{PLAN_LABEL[lic.plan] || "Vitalicia"}</span>
+                <span className="text-white">{lic.plan || "Vitalicia"}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-400">Vigencia:</span>

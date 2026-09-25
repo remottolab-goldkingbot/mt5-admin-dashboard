@@ -18,28 +18,11 @@ import {
   Search,
   Clipboard,
   RefreshCw,
+  Settings,
+  Plus,
+  Trash2,
+  X,
 } from "lucide-react";
-
-// EAs disponibles (catálogo visual — de momento no persiste en el backend,
-// solo ayuda al admin a recordar qué bot vendió; el backend actual no tiene
-// columna "ea" en la tabla licenses).
-const EA_OPTIONS = [
-  "Gold King Bot Miner V1.0",
-  "Forex Institutional Alpha",
-  "Solana Grid Master EA",
-];
-
-const DURATION_TO_PLAN = {
-  "1 Año": "yearly",
-  Vitalicia: "lifetime",
-  "Demo 30 Días": "monthly",
-};
-
-const PLAN_TO_DURATION = {
-  yearly: "1 Año",
-  lifetime: "Vitalicia",
-  monthly: "Demo 30 Días",
-};
 
 // Nombre del país en español a partir del código ISO que detecta el input (ej: "CO" -> "Colombia")
 const getCountryName = (isoCode) => {
@@ -62,12 +45,21 @@ function LicenseGenerator() {
 
   const [searchParams] = useSearchParams();
 
+  // Catálogos dinámicos (EAs y Planes de duración) — gestionables desde el Panel Admin
+  const [eaCatalog, setEaCatalog] = useState([]);
+  const [planCatalog, setPlanCatalog] = useState([]);
+  const [showCatalogManager, setShowCatalogManager] = useState(false);
+  const [newEaName, setNewEaName] = useState("");
+  const [newPlanLabel, setNewPlanLabel] = useState("");
+  const [newPlanDays, setNewPlanDays] = useState("");
+  const [catalogError, setCatalogError] = useState("");
+
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneCountry, setPhoneCountry] = useState("CO");
-  const [ea, setEa] = useState(EA_OPTIONS[0]);
-  const [durationLabel, setDurationLabel] = useState("1 Año");
+  const [ea, setEa] = useState("");
+  const [planId, setPlanId] = useState("");
 
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [licenseToDelete, setLicenseToDelete] = useState(null);
@@ -77,8 +69,8 @@ function LicenseGenerator() {
     name: "",
     email: "",
     phone: "",
-    durationLabel: "1 Año",
-    ea_name: EA_OPTIONS[0],
+    planId: "",
+    ea_name: "",
   });
   const [savingEdit, setSavingEdit] = useState(false);
   const [showResetAlert, setShowResetAlert] = useState(false);
@@ -111,8 +103,107 @@ function LicenseGenerator() {
     }
   };
 
+  const fetchCatalogs = async () => {
+    try {
+      const [eaRes, planRes] = await Promise.all([
+        fetch(`${import.meta.env.VITE_API_URL}/catalog/eas`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${import.meta.env.VITE_API_URL}/catalog/plans`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+      const eaData = await eaRes.json();
+      const planData = await planRes.json();
+
+      if (eaRes.ok) {
+        setEaCatalog(eaData);
+        setEa((prev) => prev || eaData[0]?.name || "");
+      }
+      if (planRes.ok) {
+        setPlanCatalog(planData);
+        setPlanId((prev) => prev || String(planData[0]?.id || ""));
+      }
+    } catch {
+      // silencioso: si falla, los selects quedan vacíos
+    }
+  };
+
+  const addEA = async () => {
+    if (!newEaName.trim()) return;
+    setCatalogError("");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/catalog/eas`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newEaName }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo agregar el EA");
+
+      setEaCatalog((prev) => [...prev, data.ea]);
+      setNewEaName("");
+    } catch (err) {
+      setCatalogError(err.message);
+    }
+  };
+
+  const removeEA = async (id) => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/catalog/eas/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setEaCatalog((prev) => prev.filter((e) => e.id !== id));
+    } catch {
+      setCatalogError("No se pudo eliminar el EA");
+    }
+  };
+
+  const addPlan = async () => {
+    if (!newPlanLabel.trim()) return;
+    setCatalogError("");
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/catalog/plans`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          label: newPlanLabel,
+          duration_days: newPlanDays === "" ? null : Number(newPlanDays),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "No se pudo agregar el plan");
+
+      setPlanCatalog((prev) => [...prev, data.plan]);
+      setNewPlanLabel("");
+      setNewPlanDays("");
+    } catch (err) {
+      setCatalogError(err.message);
+    }
+  };
+
+  const removePlan = async (id) => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL}/catalog/plans/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setPlanCatalog((prev) => prev.filter((p) => p.id !== id));
+    } catch {
+      setCatalogError("No se pudo eliminar el plan");
+    }
+  };
+
   useEffect(() => {
     fetchLicenses();
+    fetchCatalogs();
     const interval = setInterval(() => {
       fetchLicenses();
     }, 10000);
@@ -151,7 +242,7 @@ function LicenseGenerator() {
     setCreating(true);
 
     try {
-      const plan = DURATION_TO_PLAN[durationLabel] || "lifetime";
+      const selectedPlan = planCatalog.find((p) => String(p.id) === String(planId));
 
       const res = await fetch(`${import.meta.env.VITE_API_URL}/licenses`, {
         method: "POST",
@@ -159,7 +250,14 @@ function LicenseGenerator() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ name, email, phone, plan, ea_name: ea }),
+        body: JSON.stringify({
+          name,
+          email,
+          phone,
+          plan: selectedPlan?.label || "Vitalicia",
+          duration_days: selectedPlan?.duration_days ?? null,
+          ea_name: ea,
+        }),
       });
 
       const data = await res.json();
@@ -171,8 +269,8 @@ function LicenseGenerator() {
       setName("");
       setEmail("");
       setPhone("");
-      setEa(EA_OPTIONS[0]);
-      setDurationLabel("1 Año");
+      setEa(eaCatalog[0]?.name || "");
+      setPlanId(String(planCatalog[0]?.id || ""));
 
       fetchLicenses();
     } catch (err) {
@@ -241,7 +339,7 @@ function LicenseGenerator() {
     setSavingEdit(true);
     setError("");
     try {
-      const plan = DURATION_TO_PLAN[editDraft.durationLabel] || "lifetime";
+      const selectedPlan = planCatalog.find((p) => String(p.id) === String(editDraft.planId));
 
       const res = await fetch(
         `${import.meta.env.VITE_API_URL}/licenses/${selectedLicense.id}`,
@@ -255,7 +353,8 @@ function LicenseGenerator() {
             name: editDraft.name,
             email: editDraft.email,
             phone: editDraft.phone,
-            plan,
+            plan: selectedPlan?.label,
+            duration_days: selectedPlan?.duration_days ?? null,
             ea_name: editDraft.ea_name,
           }),
         }
@@ -271,7 +370,8 @@ function LicenseGenerator() {
               name: editDraft.name,
               email: editDraft.email,
               phone: editDraft.phone,
-              plan,
+              plan: selectedPlan?.label,
+              duration_days: selectedPlan?.duration_days ?? null,
               ea_name: editDraft.ea_name,
               expires_at: data.license?.expires_at ?? prev.expires_at,
             }
@@ -478,15 +578,25 @@ function LicenseGenerator() {
             </div>
 
             <div>
-              <label className="block text-slate-400 mb-1">ALGORITMO / EA SELECCIONADO</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-slate-400">ALGORITMO / EA SELECCIONADO</label>
+                <button
+                  type="button"
+                  onClick={() => setShowCatalogManager(true)}
+                  className="text-cyan-400 hover:text-cyan-300 text-[10px] flex items-center gap-1"
+                >
+                  <Settings className="w-3 h-3" /> Gestionar Catálogo
+                </button>
+              </div>
               <select
                 value={ea}
                 onChange={(e) => setEa(e.target.value)}
                 className="w-full glass-input p-3 rounded-xl text-white"
               >
-                {EA_OPTIONS.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
+                {eaCatalog.length === 0 && <option value="">Sin EAs — agrega uno primero</option>}
+                {eaCatalog.map((opt) => (
+                  <option key={opt.id} value={opt.name}>
+                    {opt.name}
                   </option>
                 ))}
               </select>
@@ -512,13 +622,16 @@ function LicenseGenerator() {
             <div>
               <label className="block text-slate-400 mb-1">DURACIÓN</label>
               <select
-                value={durationLabel}
-                onChange={(e) => setDurationLabel(e.target.value)}
+                value={planId}
+                onChange={(e) => setPlanId(e.target.value)}
                 className="w-full glass-input p-3 rounded-xl text-white"
               >
-                <option value="1 Año">1 Año</option>
-                <option value="Vitalicia">Vitalicia</option>
-                <option value="Demo 30 Días">Demo 30 Días</option>
+                {planCatalog.length === 0 && <option value="">Sin planes — agrega uno primero</option>}
+                {planCatalog.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.label}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -579,13 +692,14 @@ function LicenseGenerator() {
                       key={license.id}
                       onClick={() => {
                         setSelectedLicense(license);
+                        const matchedPlan = planCatalog.find((p) => p.label === license.plan);
                         setEditDraft({
                           name: license.name || "",
                           email: license.email || "",
                           phone: license.phone || "",
                           phoneCountry: "CO",
-                          durationLabel: PLAN_TO_DURATION[license.plan] || "Vitalicia",
-                          ea_name: license.ea_name || EA_OPTIONS[0],
+                          planId: String(matchedPlan?.id || planCatalog[0]?.id || ""),
+                          ea_name: license.ea_name || eaCatalog[0]?.name || "",
                         });
                         setShowProfileModal(true);
                       }}
@@ -795,9 +909,9 @@ function LicenseGenerator() {
                   onChange={(e) => setEditDraft((d) => ({ ...d, ea_name: e.target.value }))}
                   className="w-full glass-input p-2.5 rounded-xl text-white"
                 >
-                  {EA_OPTIONS.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
+                  {eaCatalog.map((opt) => (
+                    <option key={opt.id} value={opt.name}>
+                      {opt.name}
                     </option>
                   ))}
                 </select>
@@ -806,15 +920,15 @@ function LicenseGenerator() {
               <div>
                 <label className="block text-slate-400 mb-1">DURACIÓN</label>
                 <select
-                  value={editDraft.durationLabel}
-                  onChange={(e) =>
-                    setEditDraft((d) => ({ ...d, durationLabel: e.target.value }))
-                  }
+                  value={editDraft.planId}
+                  onChange={(e) => setEditDraft((d) => ({ ...d, planId: e.target.value }))}
                   className="w-full glass-input p-2.5 rounded-xl text-white"
                 >
-                  <option value="1 Año">1 Año</option>
-                  <option value="Vitalicia">Vitalicia</option>
-                  <option value="Demo 30 Días">Demo 30 Días</option>
+                  {planCatalog.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
                 </select>
               </div>
 
@@ -902,6 +1016,110 @@ function LicenseGenerator() {
             >
               Cerrar
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL GESTIONAR CATÁLOGO (EAs y Planes) */}
+      {showCatalogManager && (
+        <div
+          className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowCatalogManager(false)}
+        >
+          <div
+            className="glass-panel p-8 rounded-3xl w-full max-w-lg border border-cyan-500/30 space-y-6 font-mono text-xs max-h-[85vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <h2 className="text-white font-bold text-base flex items-center gap-2">
+                <Settings className="w-4 h-4 text-cyan-400" />
+                <span>Gestionar Catálogo</span>
+              </h2>
+              <button onClick={() => setShowCatalogManager(false)} className="text-slate-500 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {catalogError && <p className="text-rose-400">{catalogError}</p>}
+
+            {/* EAs */}
+            <div className="space-y-3">
+              <h3 className="text-slate-300 font-bold">Algoritmos / EAs</h3>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {eaCatalog.map((opt) => (
+                  <div key={opt.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-white">{opt.name}</span>
+                    <button onClick={() => removeEA(opt.id)} className="text-rose-400 hover:text-rose-300">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {eaCatalog.length === 0 && <p className="text-slate-500">Sin EAs todavía.</p>}
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newEaName}
+                  onChange={(e) => setNewEaName(e.target.value)}
+                  placeholder="Nombre del nuevo EA..."
+                  className="flex-1 glass-input p-2.5 rounded-xl text-white"
+                />
+                <button
+                  onClick={addEA}
+                  className="px-3 py-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/40 font-bold flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> Agregar
+                </button>
+              </div>
+            </div>
+
+            {/* Planes */}
+            <div className="space-y-3 pt-4 border-t border-slate-800">
+              <h3 className="text-slate-300 font-bold">Planes de Duración</h3>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                {planCatalog.map((p) => (
+                  <div key={p.id} className="flex items-center justify-between p-2 rounded-lg bg-slate-900 border border-slate-800">
+                    <span className="text-white">
+                      {p.label}{" "}
+                      <span className="text-slate-500">
+                        ({p.duration_days ? `${p.duration_days} días` : "Vitalicia"})
+                      </span>
+                    </span>
+                    <button onClick={() => removePlan(p.id)} className="text-rose-400 hover:text-rose-300">
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+                {planCatalog.length === 0 && <p className="text-slate-500">Sin planes todavía.</p>}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  value={newPlanLabel}
+                  onChange={(e) => setNewPlanLabel(e.target.value)}
+                  placeholder="Nombre (ej: 2 Días)"
+                  className="col-span-2 glass-input p-2.5 rounded-xl text-white"
+                />
+                <input
+                  type="number"
+                  value={newPlanDays}
+                  onChange={(e) => setNewPlanDays(e.target.value)}
+                  placeholder="Días (vacío=Vitalicia)"
+                  className="glass-input p-2.5 rounded-xl text-white"
+                />
+              </div>
+              <button
+                onClick={addPlan}
+                className="w-full py-2 rounded-xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 hover:bg-cyan-500/40 font-bold flex items-center justify-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" /> Agregar Plan
+              </button>
+            </div>
+
+            <p className="text-[10px] text-slate-500 text-center">
+              Eliminar un EA o Plan no afecta a las licencias que ya lo usan — solo deja de
+              aparecer como opción para las nuevas.
+            </p>
           </div>
         </div>
       )}
