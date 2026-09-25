@@ -15,6 +15,8 @@ import {
   ShieldCheck,
   Server,
   Shield,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 
 function Login() {
@@ -27,6 +29,7 @@ function Login() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [notice, setNotice] = useState("");
@@ -36,6 +39,8 @@ function Login() {
   const [regPhone, setRegPhone] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regConfirm, setRegConfirm] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
+  const [showRegConfirm, setShowRegConfirm] = useState(false);
   const [regError, setRegError] = useState("");
   const [regLoading, setRegLoading] = useState(false);
 
@@ -272,12 +277,19 @@ function Login() {
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
-                        type="password"
+                        type={showPassword ? "text" : "password"}
                         required
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full glass-input rounded-xl pl-9 pr-3 py-3 text-white"
+                        className="w-full glass-input rounded-xl pl-9 pr-9 py-3 text-white"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
 
@@ -380,13 +392,20 @@ function Login() {
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
-                        type="password"
+                        type={showRegPassword ? "text" : "password"}
                         required
                         minLength={6}
                         value={regPassword}
                         onChange={(e) => setRegPassword(e.target.value)}
-                        className="w-full glass-input rounded-xl pl-9 pr-3 py-3 text-white"
+                        className="w-full glass-input rounded-xl pl-9 pr-9 py-3 text-white"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegPassword((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                      >
+                        {showRegPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                   <div>
@@ -394,13 +413,20 @@ function Login() {
                     <div className="relative">
                       <Lock className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
                       <input
-                        type="password"
+                        type={showRegConfirm ? "text" : "password"}
                         required
                         minLength={6}
                         value={regConfirm}
                         onChange={(e) => setRegConfirm(e.target.value)}
-                        className="w-full glass-input rounded-xl pl-9 pr-3 py-3 text-white"
+                        className="w-full glass-input rounded-xl pl-9 pr-9 py-3 text-white"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setShowRegConfirm((v) => !v)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                      >
+                        {showRegConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
                     </div>
                   </div>
                 </div>
